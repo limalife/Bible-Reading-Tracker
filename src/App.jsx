@@ -33,7 +33,7 @@ function App() {
         const totalBibleChapters = allBooks.reduce((acc, b) => acc + b.chapters, 0);
         
         try {
-          const promises = userList.map(name => fetchUserProgress(name).then(data => ({ name, data })));
+          const promises = userList.map(name => fetchUserProgress(name).then(res => ({ name, data: res.chapters })));
           const fetchedData = await Promise.all(promises);
           
           if (isMounted) {
@@ -79,43 +79,53 @@ function App() {
     // 개별 유저 조회
     const loadData = async () => {
       setIsLoading(true);
-      const data = await fetchUserProgress(activeUser);
+      const { chapters: data, lastChecked } = await fetchUserProgress(activeUser);
       if (isMounted) {
         setReadChapters(data);
         
         // 딱 최초 로드 및 탭 변경 시점에 단 한 번만! 스크롤 타겟을 계산합니다.
         // 유저가 클릭해서 체크박스를 바꿀 때는 이 로직이 돌지 않아 화면이 멋대로 움직이지 않습니다.
         const allBooks = [...oldTestament, ...newTestament];
-        let targetId = allBooks[0].id;
-        let found = false;
+        let targetId = null;
+        let targetChapter = null;
 
-        for (let i = allBooks.length - 1; i >= 0; i--) {
-          const book = allBooks[i];
-          const readCount = data[book.id] ? data[book.id].length : 0;
-          if (readCount > 0 && readCount < book.chapters) {
-            targetId = book.id;
-            found = true;
-            break;
-          }
+        if (lastChecked && lastChecked.bookId) {
+          targetId = lastChecked.bookId;
+          targetChapter = lastChecked.chapter;
         }
 
-        if (!found) {
-          let furthestCompletedIdx = -1;
+        if (!targetId) {
+          targetId = allBooks[0].id;
+          let found = false;
+
           for (let i = allBooks.length - 1; i >= 0; i--) {
             const book = allBooks[i];
             const readCount = data[book.id] ? data[book.id].length : 0;
-            if (readCount === book.chapters) {
-              furthestCompletedIdx = i;
+            if (readCount > 0 && readCount < book.chapters) {
+              targetId = book.id;
+              found = true;
               break;
             }
           }
-          if (furthestCompletedIdx !== -1) {
-            if (furthestCompletedIdx + 1 < allBooks.length) targetId = allBooks[furthestCompletedIdx + 1].id;
-            else targetId = allBooks[allBooks.length - 1].id;
+
+          if (!found) {
+            let furthestCompletedIdx = -1;
+            for (let i = allBooks.length - 1; i >= 0; i--) {
+              const book = allBooks[i];
+              const readCount = data[book.id] ? data[book.id].length : 0;
+              if (readCount === book.chapters) {
+                furthestCompletedIdx = i;
+                break;
+              }
+            }
+            if (furthestCompletedIdx !== -1) {
+              if (furthestCompletedIdx + 1 < allBooks.length) targetId = allBooks[furthestCompletedIdx + 1].id;
+              else targetId = allBooks[allBooks.length - 1].id;
+            }
           }
         }
 
-        setRouteTarget({ bookId: targetId, triggerTime: Date.now() });
+        setRouteTarget({ bookId: targetId, chapter: targetChapter, triggerTime: Date.now() });
         setIsLoading(false);
       }
     };
@@ -130,17 +140,27 @@ function App() {
   const toggleChapter = async (bookId, chapter) => {
     const newProgress = { ...readChapters };
     const bookProgress = newProgress[bookId] || [];
+    let isAdding = false;
     
     if (bookProgress.includes(chapter)) {
       newProgress[bookId] = bookProgress.filter(c => c !== chapter);
     } else {
       newProgress[bookId] = [...bookProgress, chapter].sort((a, b) => a - b);
+      isAdding = true;
     }
     
     // UI 즉각 반영
     setReadChapters(newProgress);
+    
+    const lastChecked = isAdding ? { bookId, chapter } : undefined;
+    
     // 파이어베이스 업로드
-    await saveUserProgress(activeUser, newProgress);
+    await saveUserProgress(activeUser, newProgress, lastChecked);
+    
+    // 새로 체크한 경우 읽던 곳 타겟을 즉시 갱신
+    if (isAdding) {
+      setRouteTarget(prev => ({ ...prev, bookId, chapter }));
+    }
   };
 
   const toggleBookProgress = async (bookId, isCompleted, totalChapters) => {
@@ -149,17 +169,35 @@ function App() {
       [bookId]: isCompleted ? [] : Array.from({ length: totalChapters }, (_, i) => i + 1)
     };
     setReadChapters(newProgress);
-    await saveUserProgress(activeUser, newProgress);
+    
+    const lastChecked = !isCompleted ? { bookId, chapter: totalChapters } : undefined;
+    
+    await saveUserProgress(activeUser, newProgress, lastChecked);
+    
+    // 새로 모두 읽음을 체크한 경우 읽던 곳 타겟 갱신
+    if (!isCompleted) {
+      setRouteTarget(prev => ({ ...prev, bookId, chapter: totalChapters }));
+    }
   };
 
   // 드래그를 마치고 손을 뗐을 때 1번만 DB에 저장하기 위한 함수
-  const updateBookBatch = async (bookId, newChaptersArr) => {
+  const updateBookBatch = async (bookId, newChaptersArr, addedChaptersArr = []) => {
     const newProgress = {
       ...readChapters,
       [bookId]: [...newChaptersArr].sort((a,b)=>a-b)
     };
     setReadChapters(newProgress);
-    await saveUserProgress(activeUser, newProgress);
+    
+    let lastChecked;
+    if (addedChaptersArr && addedChaptersArr.length > 0) {
+       lastChecked = { bookId, chapter: Math.max(...addedChaptersArr) };
+    }
+    await saveUserProgress(activeUser, newProgress, lastChecked);
+
+    // 새로 드래그로 체크한 경우 읽던 곳 타겟 갱신
+    if (lastChecked) {
+      setRouteTarget(prev => ({ ...prev, bookId: lastChecked.bookId, chapter: lastChecked.chapter }));
+    }
   };
 
   const calculateProgress = (books) => {
@@ -191,11 +229,19 @@ function App() {
 
   const handleJumpToReading = () => {
     if (routeTarget && routeTarget.bookId) {
-      const target = document.getElementById(`book-${routeTarget.bookId}`);
-      if (target) {
-        const y = target.getBoundingClientRect().top + window.scrollY - 80;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
+      // 트리거 타임을 업데이트하여 BibleGrid가 닫힌 패널을 강제로 다시 열도록 유도합니다.
+      setRouteTarget({ ...routeTarget, triggerTime: Date.now() });
+      
+      // 패널이 열리고 레이아웃이 계산될 시간을 확보하기 위해 Timeout 값을 조금 여유롭게(100ms) 줍니다.
+      setTimeout(() => {
+        const target = document.getElementById(`book-${routeTarget.bookId}`);
+        if (target) {
+          // 패널 최상단 위쪽으로 여유 공간(80px)을 두어 이름이 잘리지 않도록 합니다.
+          const y = target.getBoundingClientRect().top + window.scrollY - 80;
+          
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 100);
     }
   };
 

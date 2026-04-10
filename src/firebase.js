@@ -21,27 +21,35 @@ export const fetchUserProgress = async (userName) => {
     const docRef = doc(db, "bibleProgress", userName);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data().chapters || {};
+      const data = docSnap.data();
+      return {
+        chapters: data.chapters || {},
+        lastChecked: data.lastChecked || null
+      };
     } else {
-      return {}; // 데이터가 없으면 빈 객체 리턴
+      return { chapters: {}, lastChecked: null };
     }
   } catch (error) {
     console.error(
       "Firebase 데이터 읽기 에러 (혹시 Rules 설정이 안되었나요?):",
       error,
     );
-    return {};
+    return { chapters: {}, lastChecked: null };
   }
 };
 
 // 3. 유저별 진도 데이터 덮어쓰기 (비동기)
-export const saveUserProgress = async (userName, chaptersData) => {
+export const saveUserProgress = async (userName, chaptersData, lastChecked) => {
   try {
     const docRef = doc(db, "bibleProgress", userName);
+    const dataToSave = { chapters: chaptersData, lastUpdated: new Date().toISOString() };
+    if (lastChecked) {
+      dataToSave.lastChecked = lastChecked;
+    }
     // { merge: true } 옵션을 주면 기존 문서를 완전히 덮어쓰지 않고 명시된 필드만 합칩니다.
     await setDoc(
       docRef,
-      { chapters: chaptersData, lastUpdated: new Date().toISOString() },
+      dataToSave,
       { merge: true },
     );
   } catch (error) {

@@ -105,14 +105,21 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
       const draggedArr = [];
       for(let i=start; i<=end; i++) draggedArr.push(i);
 
+      let actuallyAdded = [];
+
       if (dragState.action === 'add') {
-         draggedArr.forEach(c => { if (!nextList.includes(c)) nextList.push(c); });
+         draggedArr.forEach(c => { 
+           if (!nextList.includes(c)) {
+             nextList.push(c); 
+             actuallyAdded.push(c);
+           }
+         });
       } else {
          nextList = nextList.filter(c => !draggedArr.includes(c));
       }
 
       if (draggedArr.length > 0) {
-        updateBookBatch(dragState.bookId, nextList);
+        updateBookBatch(dragState.bookId, nextList, actuallyAdded);
       }
       
       justFinishedDragRef.current = true;
