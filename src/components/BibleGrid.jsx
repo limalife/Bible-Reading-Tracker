@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 
 const BibleGrid = ({ books, readChapters, toggleChapter, markBookAsRead }) => {
-  const [openBookId, setOpenBookId] = useState(null);
+  const [openBookId, setOpenBookId] = useState(() => localStorage.getItem('lastOpenBookId') || null);
 
   const handleToggleOpen = (id) => {
-    setOpenBookId(openBookId === id ? null : id);
+    const nextId = openBookId === id ? null : id;
+    setOpenBookId(nextId);
+    if (nextId) localStorage.setItem('lastOpenBookId', nextId);
+    else localStorage.removeItem('lastOpenBookId');
   };
 
   return (

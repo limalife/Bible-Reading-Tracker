@@ -10,9 +10,17 @@ import { oldTestament, newTestament } from './data/bibleData';
 import { fetchUserProgress, saveUserProgress } from './firebase';
 
 function App() {
-  const [activeUser, setActiveUser] = useState(userList[0]); // 초기값은 목록의 첫 번째 분
+  const [activeUser, setActiveUser] = useState(() => {
+    const savedUser = localStorage.getItem('lastActiveUser');
+    return savedUser && userList.includes(savedUser) ? savedUser : userList[0];
+  });
   const [readChapters, setReadChapters] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+
+  // 현재 접속한 탭(사람) 변경 시 로컬 스토리지에 자동 저장
+  useEffect(() => {
+    localStorage.setItem('lastActiveUser', activeUser);
+  }, [activeUser]);
 
   // 탭 변경 시 파이어베이스에서 해당 유저의 데이터를 읽어옵니다.
   useEffect(() => {
