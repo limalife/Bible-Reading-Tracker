@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, User } from 'lucide-react';
+import { BookOpen, Download, Users, TrendingUp } from 'lucide-react';
 import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
 import BibleGrid from './components/BibleGrid';
@@ -17,15 +17,66 @@ function App() {
   const [readChapters, setReadChapters] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [routeTarget, setRouteTarget] = useState(null);
+  
+  // 전체 화면용 state
+  const [allUsersData, setAllUsersData] = useState([]);
+  const [isAllUsersLoading, setIsAllUsersLoading] = useState(false);
 
-  // 현재 접속한 탭(사람) 변경 시 로컬 스토리지에 자동 저장
-  useEffect(() => {
-    localStorage.setItem('lastActiveUser', activeUser);
-  }, [activeUser]);
-
-  // 탭 변경 시 파이어베이스에서 해당 유저의 데이터를 읽어옵니다.
+  // 현재 접속한 탭(사람) 변경 시 파이어베이스에서 해당 데이터를 읽어옵니다.
   useEffect(() => {
     let isMounted = true;
+
+    if (activeUser === '전체') {
+      const loadAll = async () => {
+        setIsAllUsersLoading(true);
+        const allBooks = [...oldTestament, ...newTestament];
+        const totalBibleChapters = allBooks.reduce((acc, b) => acc + b.chapters, 0);
+        
+        try {
+          const promises = userList.map(name => fetchUserProgress(name).then(data => ({ name, data })));
+          const fetchedData = await Promise.all(promises);
+          
+          if (isMounted) {
+            const stats = fetchedData.map(({ name, data }) => {
+              let readCount = 0;
+              let currentPos = '-';
+              let furthestBookIdx = -1;
+              let furthestChapter = 0;
+
+              allBooks.forEach((book, idx) => {
+                if (data[book.id] && data[book.id].length > 0) {
+                  readCount += data[book.id].length;
+                  if (idx > furthestBookIdx) {
+                    furthestBookIdx = idx;
+                    furthestChapter = Math.max(...data[book.id]);
+                  }
+                }
+              });
+
+              if (furthestBookIdx !== -1) {
+                currentPos = `${allBooks[furthestBookIdx].name} ${furthestChapter}장`;
+              }
+              
+              const percentage = ((readCount / totalBibleChapters) * 100).toFixed(2);
+              const remaining = totalBibleChapters - readCount;
+
+              return { name, readCount, percentage, remaining, currentPos };
+            });
+
+            // 원본 스와이프(userList) 순서 유지
+            setAllUsersData(stats);
+          }
+        } catch(e) {
+          console.error(e);
+        } finally {
+          if (isMounted) setIsAllUsersLoading(false);
+        }
+      };
+      loadAll();
+      return () => { isMounted = false; };
+    }
+
+    // 개별 유저 조회
     const loadData = async () => {
       setIsLoading(true);
       const data = await fetchUserProgress(activeUser);
@@ -131,11 +182,12 @@ function App() {
 
   const otStats = calculateProgress(oldTestament);
   const ntStats = calculateProgress(newTestament);
-  const totalStats = {
-    total: otStats.total + ntStats.total,
-    read: otStats.read + ntStats.read,
-    percentage: Math.round(((otStats.read + ntStats.read) / (otStats.total + ntStats.total)) * 1000) / 10
-  };
+  // 로컬 스토리지 저장 (전체 탭 제외)
+  useEffect(() => {
+    if (activeUser !== '전체') {
+      localStorage.setItem('lastActiveUser', activeUser);
+    }
+  }, [activeUser]);
 
   const handleJumpToReading = () => {
     if (routeTarget && routeTarget.bookId) {
@@ -147,79 +199,143 @@ function App() {
     }
   };
 
+  const handleDownloadExcel = () => {
+    try {
+      const dateStr = new Date().toISOString().split('T')[0];
+      const header = ['이름', '읽은 장 수', '달성률(%)', '남은 진도(장)', '현재 위치'];
+      const csvContent = [
+        header.join(','),
+        ...allUsersData.map(u => `${u.name},${u.readCount},${u.percentage}%,${u.remaining},${u.currentPos}`)
+      ].join('\n');
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `다락방_전체_현황_${dateStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch(e) {
+      alert("다운로드 실패");
+    }
+  };
+
   return (
     <div className="app-container">
       <Header />
-      
+
       {/* 12인 탭 컴포넌트 */}
-      <h2 style={{ fontSize: '1.2rem', marginBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)' }}>
-        <User size={18} /> 누구의 진도표를 볼까요?
-      </h2>
-      <UserTabs activeUser={activeUser} onTabChange={setActiveUser} />
+      <div style={{ marginTop: '1rem', marginBottom: '1.5rem', opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+        <UserTabs activeUser={activeUser} onTabChange={setActiveUser} />
+      </div>
 
       <div className="progress-section" style={{ position: 'relative' }}>
-        {isLoading && (
+        {(isLoading || isAllUsersLoading) && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(30, 41, 59, 0.7)', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
             <span style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>불러오는 중...</span>
           </div>
         )}
-        <h2 className="section-title">
-          <span style={{ color: 'var(--accent-hover)' }}>{activeUser}</span>님의 통독 현황 
-        </h2>
-        <ProgressBar title="성경 전체" stats={totalStats} />
-        <ProgressBar title="구약" stats={otStats} />
-        <ProgressBar title="신약" stats={ntStats} />
+
+        {activeUser === '전체' ? (
+          <div>
+            <h2 className="section-title">
+              <Users size={24} color="#8b5cf6" /> 다락방 전체 현황 
+            </h2>
+            
+            <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              {allUsersData.map((user) => (
+                <div key={user.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{user.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{user.readCount}장</span>
+                    <span style={{ color: 'var(--accent-light)', fontWeight: '700', fontSize: '1.05rem', minWidth: '3.8rem', textAlign: 'right' }}>{user.percentage}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ textAlign: 'right', marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
+              <button 
+                onClick={handleDownloadExcel}
+                style={{
+                  background: 'rgba(139, 92, 246, 0.15)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  padding: '0.6rem 1.2rem',
+                  borderRadius: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 8px rgba(139, 92, 246, 0.1)'
+                }}
+              >
+                <Download size={16} /> 전체 현황 엑셀 다운로드 (CSV)
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 className="section-title">
+              <span style={{ color: 'var(--accent-hover)' }}>{activeUser}</span>님의 성경 정독 현황 
+            </h2>
+            <ProgressBar title="성경 전체" stats={{
+              total: oldTestament.reduce((acc,b)=>acc+b.chapters,0) + newTestament.reduce((acc,b)=>acc+b.chapters,0),
+              read: Object.values(readChapters).reduce((acc, arr) => acc + arr.length, 0),
+              percentage: Math.round(((Object.values(readChapters).reduce((acc, arr) => acc + arr.length, 0)) / (oldTestament.reduce((acc,b)=>acc+b.chapters,0) + newTestament.reduce((acc,b)=>acc+b.chapters,0))) * 1000) / 10
+            }} />
+            <ProgressBar title="구약" stats={{
+              total: oldTestament.reduce((acc,b)=>acc+b.chapters,0),
+              read: oldTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0),
+              percentage: oldTestament.reduce((acc,b)=>acc+b.chapters,0) === 0 ? 0 : Math.round((oldTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0) / oldTestament.reduce((acc,b)=>acc+b.chapters,0)) * 1000) / 10
+            }} />
+            <ProgressBar title="신약" stats={{
+              total: newTestament.reduce((acc,b)=>acc+b.chapters,0),
+              read: newTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0),
+              percentage: newTestament.reduce((acc,b)=>acc+b.chapters,0) === 0 ? 0 : Math.round((newTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0) / newTestament.reduce((acc,b)=>acc+b.chapters,0)) * 1000) / 10
+            }} />
+          </div>
+        )}
       </div>
 
-      {!isLoading && (
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+      {activeUser !== '전체' && !isLoading && (
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <button 
             onClick={handleJumpToReading} 
-            className="btn-action" 
-            style={{ 
-              background: 'linear-gradient(135deg, var(--accent-light) 0%, var(--accent-color) 100%)', 
-              color: 'white', 
-              padding: '0.85rem 2rem', 
-              fontSize: '1.05rem', 
-              fontWeight: '600',
-              borderRadius: '50px', 
-              boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
-              border: 'none',
-              transform: 'translateY(-10px)',
-              letterSpacing: '0.5px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              justifyContent: 'center',
-              margin: '0 auto'
-            }}
+            className="jump-btn"
           >
             <BookOpen size={20} /> 읽던 곳으로 바로 내려가기
           </button>
         </div>
       )}
 
-      <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-        <h2 className="section-title"><BookOpen size={24} /> 구약 (Old Testament)</h2>
-        <BibleGrid 
-          books={oldTestament} 
-          readChapters={readChapters} 
-          toggleChapter={toggleChapter}
-          toggleBookProgress={toggleBookProgress}
-          updateBookBatch={updateBookBatch}
-          autoRouteTarget={routeTarget}
-        />
+      {activeUser !== '전체' && (
+        <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+          <h2 className="section-title"><BookOpen size={24} /> 구약 (Old Testament)</h2>
+          <BibleGrid 
+            books={oldTestament} 
+            readChapters={readChapters} 
+            toggleChapter={toggleChapter}
+            toggleBookProgress={toggleBookProgress}
+            updateBookBatch={updateBookBatch}
+            autoRouteTarget={routeTarget}
+          />
 
-        <h2 className="section-title" style={{ marginTop: '3rem' }}><BookOpen size={24} /> 신약 (New Testament)</h2>
-        <BibleGrid 
-          books={newTestament} 
-          readChapters={readChapters} 
-          toggleChapter={toggleChapter}
-          toggleBookProgress={toggleBookProgress}
-          updateBookBatch={updateBookBatch}
-          autoRouteTarget={routeTarget}
-        />
-      </div>
+          <h2 className="section-title" style={{ marginTop: '3rem' }}><BookOpen size={24} /> 신약 (New Testament)</h2>
+          <BibleGrid 
+            books={newTestament} 
+            readChapters={readChapters} 
+            toggleChapter={toggleChapter}
+            toggleBookProgress={toggleBookProgress}
+            updateBookBatch={updateBookBatch}
+            autoRouteTarget={routeTarget}
+          />
+        </div>
+      )}
     </div>
   );
 }

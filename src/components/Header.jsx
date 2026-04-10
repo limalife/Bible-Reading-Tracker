@@ -22,45 +22,35 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="header" style={{ marginBottom: '2rem' }}>
-      <h1 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
-        <BookOpen size={36} color="#8b5cf6" /> 중구 8 다락방 성경통독 진도표
-      </h1>
-      
-      {verse ? (
+    <div style={{ marginBottom: '1rem', animation: 'fadeIn 1s ease-out' }}>
+      {verse && (
         <div style={{ 
-          marginTop: '0.5rem', 
-          padding: '1.25rem', 
-          background: 'rgba(255,255,255,0.03)', 
-          borderRadius: '16px', 
-          border: '1px solid var(--glass-border)', 
-          display: 'block', 
-          margin: '0 auto',
-          maxWidth: '800px',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-          animation: 'fadeIn 1s ease-out'
+          padding: '0.9rem 1rem', 
+          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 100%)', 
+          borderRadius: '12px', 
+          border: '1px solid rgba(139, 92, 246, 0.35)', 
+          boxShadow: '0 4px 20px -2px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
+          display: 'block',
+          maxWidth: '100%'
         }}>
           <p style={{ 
-            fontSize: '1.1rem', 
-            fontStyle: 'italic', 
-            fontWeight: '400', 
+            fontSize: '1.05rem', 
             color: 'var(--text-primary)', 
-            marginBottom: '0.75rem', 
+            margin: 0,
+            fontWeight: '500',
             lineHeight: '1.6',
-            wordBreak: 'keep-all'
+            wordBreak: 'keep-all',
+            textAlign: 'center',
+            textShadow: '0 1px 2px rgba(0,0,0,0.3)'
           }}>
-            <Quote size={16} style={{ display: 'inline-block', marginRight: '0.5rem', color: 'var(--text-secondary)', transform: 'rotate(180deg) translateY(2px)' }} />
+            <Quote size={14} style={{ display: 'inline-block', color: 'var(--accent-light)', transform: 'rotate(180deg) translateY(2px)', marginRight: '6px' }} />
             {verse.text}
-            <Quote size={16} style={{ display: 'inline-block', marginLeft: '0.5rem', color: 'var(--text-secondary)', transform: 'translateY(-2px)' }} />
+            <Quote size={14} style={{ display: 'inline-block', color: 'var(--accent-light)', transform: 'translateY(-2px)', marginLeft: '6px', marginRight: '6px' }} />
+            <span style={{ display: 'inline-block', color: '#a78bfa', fontSize: '0.9rem', fontWeight: '600', whiteSpace: 'nowrap' }}>- {verse.ref}</span>
           </p>
-          <span style={{ fontSize: '0.9rem', color: '#a78bfa', fontWeight: '600', letterSpacing: '0.5px' }}>
-            - {verse.ref} -
-          </span>
         </div>
-      ) : (
-        <p>매일 꾸준히 말씀을 읽으며 영적인 성장을 이뤄보세요.</p>
       )}
-    </header>
+    </div>
   );
 };
 

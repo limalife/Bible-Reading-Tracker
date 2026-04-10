@@ -5,10 +5,11 @@
   --surface-hover: #334155; /* tailwind slate-700 */
   --text-primary: #f8fafc; /* tailwind slate-50 */
   --text-secondary: #94a3b8; /* tailwind slate-400 */
-  --accent-color: #3b82f6; /* tailwind blue-500 */
-  --accent-hover: #60a5fa; /* tailwind blue-400 */
+  --accent-color: #8b5cf6; /* violet-500 */
+  --accent-hover: #a78bfa; /* violet-400 */
+  --accent-light: #c4b5fd; /* violet-300 */
   --progress-bg: #334155;
-  --progress-fill: linear-gradient(90deg, #3b82f6, #8b5cf6); /* modern gradient */
+  --progress-fill: linear-gradient(135deg, #a78bfa, #8b5cf6); /* modern violet gradient */
   
   --border-radius: 12px;
   --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -145,10 +146,9 @@ body {
 }
 
 .book-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  border-color: rgba(255, 255, 255, 0.1);
-  background: var(--surface-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border-color: rgba(139, 92, 246, 0.3);
 }
 
 .book-info {
@@ -198,53 +198,69 @@ body {
 }
 
 .btn-action {
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--text-secondary);
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 1rem;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
 .btn-action:hover {
-  color: var(--text-primary);
-  border-color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-action:active {
+  transform: scale(0.96);
 }
 
 .chapter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 0.6rem;
 }
 
 .chapter-btn {
-  background: var(--bg-color);
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   color: var(--text-secondary);
-  height: 40px;
-  border-radius: 6px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .chapter-btn:hover {
-  border-color: var(--accent-color);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
   color: var(--text-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.chapter-btn:active {
+  transform: scale(0.92);
 }
 
 .chapter-btn.read {
-  background: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  background: rgba(139, 92, 246, 0.25);
+  color: #f8fafc;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  text-shadow: none;
 }
 
 /* Animations */
@@ -262,26 +278,60 @@ body {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-/* Add these styles to the bottom of src/index.css */
+.jump-btn {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%);
+  color: var(--accent-light);
+  padding: 1.1rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border-radius: 16px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.jump-btn svg {
+  color: var(--accent-light);
+}
+
+.jump-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.jump-btn:active {
+  background: rgba(139, 92, 246, 0.12);
+  transform: scale(0.96) translateY(0);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.1);
+}
 
 /* User Tabs Styles */
 .user-tabs-container {
   margin-bottom: 2rem;
-  background: var(--surface-color);
+  background: rgba(0, 0, 0, 0.2); /* Inset track feel */
   padding: 0.5rem;
-  border-radius: 99px;
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  border-radius: 24px; /* More rectangular than a pure pill */
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
   overflow: hidden;
 }
 
 .user-tabs {
   display: flex;
   overflow-x: auto;
-  gap: 0.5rem;
+  gap: 0.4rem;
   padding: 0.25rem;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
   cursor: grab;
 }
 
@@ -299,11 +349,11 @@ body {
   color: var(--text-secondary);
   font-size: 0.95rem;
   font-weight: 500;
-  padding: 0.5rem 1.2rem;
-  border-radius: 99px;
+  padding: 0.6rem 1rem;
+  border-radius: 16px;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   user-select: none;
 }
 
@@ -312,10 +362,15 @@ body {
   background: rgba(255, 255, 255, 0.05);
 }
 
+.user-tab-btn:active {
+  transform: scale(0.96);
+}
+
 .user-tab-btn.active {
-  background: var(--accent-color);
-  color: white;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--text-primary);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   font-weight: 700;
 }
 

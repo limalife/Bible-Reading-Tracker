@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 
 const users = [
   "조용수", "김지윤", "강준원", "이은지", 
@@ -8,6 +8,16 @@ const users = [
 
 const UserTabs = ({ activeUser, onTabChange }) => {
   const scrollRef = useRef(null);
+
+  // 최초 진입 시, 선택된 사용자의 탭이 가로 스크롤 정중앙에 오도록 자동 이동
+  useEffect(() => {
+    if (scrollRef.current) {
+      const activeBtn = scrollRef.current.querySelector('.user-tab-btn.active');
+      if (activeBtn) {
+        scrollRef.current.scrollLeft = activeBtn.offsetLeft - (scrollRef.current.offsetWidth / 2) + (activeBtn.offsetWidth / 2);
+      }
+    }
+  }, []);
 
   // 마우스 스크롤(드래그) 지원 로직 (가로 스크롤을 더욱 편하게)
   let isDown = false;
@@ -55,6 +65,12 @@ const UserTabs = ({ activeUser, onTabChange }) => {
             {name}
           </button>
         ))}
+        <button
+          className={`user-tab-btn ${activeUser === '전체' ? 'active' : ''}`}
+          onClick={() => onTabChange('전체')}
+        >
+          전체
+        </button>
       </div>
     </div>
   );

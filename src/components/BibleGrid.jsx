@@ -14,6 +14,21 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
   });
 
   const justFinishedDragRef = useRef(false);
+  const longPressTimerRef = useRef(null);
+  const touchPosRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const preventScroll = (e) => {
+      if (dragState.active) {
+        e.preventDefault();
+      }
+    };
+    
+    // 비동기적(passive)이 아닌 기본 이벤트 차단 리스너를 문서 최상단에 부착하여 
+    // 드래그 모드가 활성화된 상태에서는 화면 스크롤을 원천 봉쇄합니다.
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => document.removeEventListener('touchmove', preventScroll);
+  }, [dragState.active]);
 
   const handleToggleOpen = (id) => {
     setOpenBookId(openBookId === id ? null : id);
@@ -39,6 +54,25 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
       startChapter: chapter,
       currentChapter: chapter
     });
+  };
+
+  const startLongPress = (e, bookId, chapter, isAlreadyRead) => {
+    if (e.pointerType === 'mouse') {
+      handleDragStart(bookId, chapter, isAlreadyRead);
+    } else {
+      touchPosRef.current = { x: e.clientX, y: e.clientY };
+      longPressTimerRef.current = setTimeout(() => {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
+        handleDragStart(bookId, chapter, isAlreadyRead);
+      }, 300);
+    }
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
   };
 
   const handleDragEnter = (bookId, chapter) => {
@@ -167,7 +201,7 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
                     )}
                   </button>
                   <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px', whiteSpace: 'nowrap' }}>
-                    <MousePointerSquareDashed size={14} style={{ marginRight: '6px', color: 'var(--accent-light)' }}/> 드래그 다중체크
+                    <MousePointerSquareDashed size={14} style={{ marginRight: '6px', color: 'var(--accent-light)' }}/> 꾹 누르고 드래그(다중체크)
                   </div>
                 </div>
                 <div 
@@ -198,12 +232,25 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
                         }}
                         onPointerDown={(e) => {
                           e.stopPropagation();
-                          handleDragStart(book.id, chapter, isReadOriginally);
+                          startLongPress(e, book.id, chapter, isReadOriginally);
                         }}
-                        onPointerEnter={() => {
-                          if (dragState.active) handleDragEnter(book.id, chapter);
+                        onPointerMove={(e) => {
+                          if (e.pointerType !== 'mouse' && !dragState.active && longPressTimerRef.current) {
+                            const dx = Math.abs(e.clientX - touchPosRef.current.x);
+                            const dy = Math.abs(e.clientY - touchPosRef.current.y);
+                            if (dx > 10 || dy > 10) cancelLongPress(); // 스크롤 시도 시 롱프레스 취소
+                          }
+                          if (dragState.active && e.pointerType === 'mouse') {
+                            handleDragEnter(book.id, chapter);
+                          }
                         }}
-                        style={{ touchAction: 'none' }} // 버튼 영역 내에서는 브라우저 터치 스크롤 대신 스와이프를 우선함
+                        onPointerUp={(e) => {
+                          cancelLongPress();
+                        }}
+                        onPointerCancel={(e) => {
+                          cancelLongPress();
+                        }}
+                        // touchAction 속성 제거로 평소 자유로운 세로 스크롤 허용
                       >
                         {chapter}
                       </button>
