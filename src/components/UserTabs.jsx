@@ -3,7 +3,7 @@ import React, { useRef, useEffect } from 'react';
 const users = [
   "조용수", "김지윤", "강준원", "이은지", 
   "나현우", "강수민", "이재선", "오혜림", 
-  "양정훈", "이진선", "한수연", "안승민"
+  "양정훈", "이진선", "안승민", "한수연"
 ];
 
 const UserTabs = ({ activeUser, onTabChange }) => {
