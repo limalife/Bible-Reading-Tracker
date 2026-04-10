@@ -280,8 +280,8 @@ function App() {
           </div>
         ) : (
           <div>
-            <h2 className="section-title">
-              <span style={{ color: 'var(--accent-hover)' }}>{activeUser}</span>님의 성경 정독 현황 
+            <h2 className="section-title" style={{ display: 'block', wordBreak: 'keep-all', lineHeight: '1.4' }}>
+              <span style={{ color: 'var(--accent-hover)', whiteSpace: 'nowrap' }}>{activeUser}</span>님의 성경 정독 현황 
             </h2>
             <ProgressBar title="성경 전체" stats={{
               total: oldTestament.reduce((acc,b)=>acc+b.chapters,0) + newTestament.reduce((acc,b)=>acc+b.chapters,0),
