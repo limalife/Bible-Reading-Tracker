@@ -354,7 +354,7 @@ function App() {
             onClick={handleJumpToReading} 
             className="jump-btn"
           >
-            <BookOpen size={20} /> 읽던 곳으로 바로 내려가기
+            <BookOpen size={20} /> 읽던 말씀으로 가기
           </button>
         </div>
       )}
