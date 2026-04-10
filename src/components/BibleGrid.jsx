@@ -1,15 +1,101 @@
-import React, { useState } from 'react';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Check, ChevronDown, ChevronUp, Undo2, MousePointerSquareDashed } from 'lucide-react';
 
-const BibleGrid = ({ books, readChapters, toggleChapter, markBookAsRead }) => {
-  const [openBookId, setOpenBookId] = useState(() => localStorage.getItem('lastOpenBookId') || null);
+const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, updateBookBatch, autoRouteTarget }) => {
+  const [openBookId, setOpenBookId] = useState(null);
+
+  // Drag-to-select states
+  const [dragState, setDragState] = useState({
+    active: false,
+    bookId: null,
+    action: null, // 'add' or 'remove'
+    startChapter: null,
+    currentChapter: null
+  });
+
+  const justFinishedDragRef = useRef(false);
 
   const handleToggleOpen = (id) => {
-    const nextId = openBookId === id ? null : id;
-    setOpenBookId(nextId);
-    if (nextId) localStorage.setItem('lastOpenBookId', nextId);
-    else localStorage.removeItem('lastOpenBookId');
+    setOpenBookId(openBookId === id ? null : id);
   };
+
+  useEffect(() => {
+    if (!autoRouteTarget || !autoRouteTarget.bookId) return;
+
+    const isMyBook = books.some(b => b.id === autoRouteTarget.bookId);
+    if (isMyBook) {
+      setOpenBookId(autoRouteTarget.bookId);
+    } else {
+      setOpenBookId(null);
+    }
+  }, [autoRouteTarget, books]);
+
+  // Drag Handlers
+  const handleDragStart = (bookId, chapter, isAlreadyRead) => {
+    setDragState({
+      active: true,
+      bookId,
+      action: isAlreadyRead ? 'remove' : 'add',
+      startChapter: chapter,
+      currentChapter: chapter
+    });
+  };
+
+  const handleDragEnter = (bookId, chapter) => {
+    if (dragState.active && dragState.bookId === bookId && dragState.currentChapter !== chapter) {
+      setDragState(prev => ({ ...prev, currentChapter: chapter }));
+    }
+  };
+
+  const handleTouchMove = (e, bookId) => {
+    if (!dragState.active || dragState.bookId !== bookId) return;
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (el && el.classList.contains('chapter-btn')) {
+      const chapterStr = el.getAttribute('data-chapter');
+      if (chapterStr) {
+        const chapter = parseInt(chapterStr, 10);
+        handleDragEnter(bookId, chapter);
+      }
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (dragState.active && dragState.bookId && dragState.startChapter && dragState.currentChapter) {
+      const currentList = readChapters[dragState.bookId] || [];
+      let nextList = [...currentList];
+      
+      const start = Math.min(dragState.startChapter, dragState.currentChapter);
+      const end = Math.max(dragState.startChapter, dragState.currentChapter);
+      
+      const draggedArr = [];
+      for(let i=start; i<=end; i++) draggedArr.push(i);
+
+      if (dragState.action === 'add') {
+         draggedArr.forEach(c => { if (!nextList.includes(c)) nextList.push(c); });
+      } else {
+         nextList = nextList.filter(c => !draggedArr.includes(c));
+      }
+
+      if (draggedArr.length > 0) {
+        updateBookBatch(dragState.bookId, nextList);
+      }
+      
+      justFinishedDragRef.current = true;
+      setTimeout(() => { justFinishedDragRef.current = false; }, 50);
+
+      setDragState({ active: false, bookId: null, action: null, startChapter: null, currentChapter: null });
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('mouseup', handleDragEnd);
+    window.addEventListener('touchend', handleDragEnd);
+    return () => {
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [dragState]);
 
   return (
     <div className="book-grid">
@@ -20,10 +106,28 @@ const BibleGrid = ({ books, readChapters, toggleChapter, markBookAsRead }) => {
         const isCompleted = readList.length === book.chapters;
 
         return (
-          <div key={book.id} className="book-card" style={isCompleted ? { borderColor: 'rgba(139, 92, 246, 0.4)' } : {}}>
+          <div 
+            key={book.id} 
+            id={`book-${book.id}`} 
+            className="book-card" 
+            style={{ 
+              borderColor: isOpen ? 'var(--accent-color)' : (isCompleted ? 'rgba(139, 92, 246, 0.4)' : undefined),
+              boxShadow: isOpen ? '0 0 0 1px var(--accent-color), 0 8px 24px rgba(0, 0, 0, 0.25)' : undefined,
+              cursor: isOpen ? 'default' : 'pointer'
+            }}
+            onClick={() => {
+              if (!isOpen) handleToggleOpen(book.id);
+            }}
+          >
             <div 
               className="book-info" 
-              onClick={() => handleToggleOpen(book.id)}
+              onClick={(e) => {
+                if (isOpen) {
+                  e.stopPropagation();
+                  handleToggleOpen(book.id);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
             >
               <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                 <span className="book-name">{book.name}</span>
@@ -43,23 +147,63 @@ const BibleGrid = ({ books, readChapters, toggleChapter, markBookAsRead }) => {
             </div>
 
             {isOpen && (
-              <div className="chapter-container">
-                <div className="chapter-actions">
+              <div 
+                className="chapter-container"
+                onTouchMove={(e) => handleTouchMove(e, book.id)}
+              >
+                <div className="chapter-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
                   <button 
                     className="btn-action"
-                    onClick={() => markBookAsRead(book.id, book.chapters)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleBookProgress(book.id, isCompleted, book.chapters);
+                    }}
+                    style={isCompleted ? { background: 'rgba(255,100,100,0.1)', color: '#ff6b6b', border: '1px solid rgba(255,100,100,0.3)', width: 'auto', flex: 1, whiteSpace: 'nowrap', padding: '0.6rem' } : { width: 'auto', flex: 1, whiteSpace: 'nowrap', padding: '0.6rem' }}
                   >
-                    1~{book.chapters}장 모두 읽음
+                    {isCompleted ? (
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Undo2 size={16} /> 모두 취소</span>
+                    ) : (
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Check size={16} /> 모두 읽음</span>
+                    )}
                   </button>
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '0.6rem 0.8rem', borderRadius: '8px', whiteSpace: 'nowrap' }}>
+                    <MousePointerSquareDashed size={14} style={{ marginRight: '6px', color: 'var(--accent-light)' }}/> 드래그 다중체크
+                  </div>
                 </div>
-                <div className="chapter-grid">
+                <div 
+                  className="chapter-grid" 
+                  style={{ userSelect: 'none' }} // Prevent text selection while dragging
+                >
                   {Array.from({ length: book.chapters }, (_, i) => i + 1).map(chapter => {
-                    const isRead = readList.includes(chapter);
+                    const isReadOriginally = readList.includes(chapter);
+                    // 현재 드래그 중인 상태를 실시간 반영
+                    let isRead = isReadOriginally;
+                    if (dragState.active && dragState.bookId === book.id && dragState.startChapter && dragState.currentChapter) {
+                      const minC = Math.min(dragState.startChapter, dragState.currentChapter);
+                      const maxC = Math.max(dragState.startChapter, dragState.currentChapter);
+                      if (chapter >= minC && chapter <= maxC) {
+                        isRead = (dragState.action === 'add');
+                      }
+                    }
+
                     return (
                       <button
                         key={chapter}
+                        data-chapter={chapter}
                         className={`chapter-btn ${isRead ? 'read' : ''}`}
-                        onClick={() => toggleChapter(book.id, chapter)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (justFinishedDragRef.current) return; // 드래그로 발생한 클릭 이벤트 무시
+                          toggleChapter(book.id, chapter); // 키보드 등 순수 클릭 대비
+                        }}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          handleDragStart(book.id, chapter, isReadOriginally);
+                        }}
+                        onPointerEnter={() => {
+                          if (dragState.active) handleDragEnter(book.id, chapter);
+                        }}
+                        style={{ touchAction: 'none' }} // 버튼 영역 내에서는 브라우저 터치 스크롤 대신 스와이프를 우선함
                       >
                         {chapter}
                       </button>
