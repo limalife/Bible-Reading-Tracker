@@ -361,16 +361,14 @@ body {
 }
 
 .jump-btn {
-  background: var(--surface-glass);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: var(--accent-hover);
+  background: var(--progress-fill);
+  color: #ffffff;
   padding: 1.1rem 2rem;
   font-size: 1.05rem;
   font-weight: 700;
   border-radius: 99px; /* Pill shape */
-  border: 1px solid rgba(255,255,255,0.7);
-  box-shadow: 0 8px 24px var(--theme-shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+  border: none;
+  box-shadow: 0 8px 24px var(--theme-shadow);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -382,21 +380,12 @@ body {
 }
 
 .jump-btn svg {
-  color: var(--accent-hover);
+  color: #ffffff;
 }
 
 .jump-btn:hover {
-  background: var(--progress-fill);
-  background-size: 200% auto;
-  color: #ffffff;
-  border-color: transparent;
   transform: translateY(-3px);
   box-shadow: 0 12px 28px var(--theme-shadow);
-  animation: gradientShine 4s linear infinite;
-}
-
-.jump-btn:hover svg {
-  color: #ffffff;
 }
 
 .jump-btn:active {
