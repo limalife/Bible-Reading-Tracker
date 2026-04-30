@@ -43,10 +43,10 @@ const Header = () => {
         <div style={{ 
           marginTop: '1.5rem',
           padding: '0.9rem 1rem', 
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 100%)', 
-          borderRadius: '12px', 
-          border: '1px solid rgba(139, 92, 246, 0.35)', 
-          boxShadow: '0 4px 20px -2px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
+          background: 'var(--surface-color)', 
+          borderRadius: '16px', 
+          border: '1px solid rgba(103, 182, 156, 0.15)', 
+          boxShadow: '0 4px 12px rgba(103, 182, 156, 0.1)',
           display: 'block',
           maxWidth: '100%'
         }}>
@@ -54,16 +54,15 @@ const Header = () => {
             fontSize: '1.05rem', 
             color: 'var(--text-primary)', 
             margin: 0,
-            fontWeight: '500',
+            fontWeight: '600',
             lineHeight: '1.6',
             wordBreak: 'keep-all',
-            textAlign: 'center',
-            textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+            textAlign: 'center'
           }}>
-            <Quote size={14} style={{ display: 'inline-block', color: 'var(--accent-light)', transform: 'rotate(180deg) translateY(2px)', marginRight: '6px' }} />
+            <Quote size={14} style={{ display: 'inline-block', color: 'var(--accent-color)', transform: 'rotate(180deg) translateY(2px)', marginRight: '6px' }} />
             {verse.text}
-            <Quote size={14} style={{ display: 'inline-block', color: 'var(--accent-light)', transform: 'translateY(-2px)', marginLeft: '6px', marginRight: '6px' }} />
-            <span style={{ display: 'inline-block', color: '#a78bfa', fontSize: '0.9rem', fontWeight: '600', whiteSpace: 'nowrap' }}>- {verse.ref}</span>
+            <Quote size={14} style={{ display: 'inline-block', color: 'var(--accent-color)', transform: 'translateY(-2px)', marginLeft: '6px', marginRight: '6px' }} />
+            <span style={{ display: 'inline-block', color: 'var(--accent-hover)', fontSize: '0.9rem', fontWeight: '700', whiteSpace: 'nowrap' }}>- {verse.ref}</span>
           </p>
         </div>
       )}

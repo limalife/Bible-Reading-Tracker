@@ -278,7 +278,7 @@ function App() {
 
       <div className="progress-section" style={{ position: 'relative' }}>
         {(isLoading || isAllUsersLoading) && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(30, 41, 59, 0.7)', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(4px)', borderRadius: 'var(--border-radius)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
             <span style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>불러오는 중...</span>
           </div>
         )}
@@ -286,38 +286,38 @@ function App() {
         {activeUser === '전체' ? (
           <div>
             <h2 className="section-title">
-              <Users size={24} color="#8b5cf6" /> 다락방 전체 현황 
+              <Users size={24} color="var(--accent-color)" /> 다락방 전체 현황 
             </h2>
             
             <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               {allUsersData.map((user) => (
-                <div key={user.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontWeight: '500', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{user.name}</span>
+                <div key={user.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--bg-color)', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                  <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{user.name}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{user.readCount}장</span>
-                    <span style={{ color: 'var(--accent-light)', fontWeight: '700', fontSize: '1.05rem', minWidth: '3.8rem', textAlign: 'right' }}>{user.percentage}%</span>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{user.readCount}장</span>
+                    <span style={{ color: 'var(--accent-color)', fontWeight: '800', fontSize: '1.05rem', minWidth: '3.8rem', textAlign: 'right' }}>{user.percentage}%</span>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div style={{ textAlign: 'right', marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
+            <div style={{ textAlign: 'right', marginTop: '2rem', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '1rem' }}>
               <button 
                 onClick={handleDownloadExcel}
                 style={{
-                  background: 'rgba(139, 92, 246, 0.15)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  padding: '0.6rem 1.2rem',
-                  borderRadius: '12px',
-                  fontSize: '0.9rem',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent-hover)',
+                  border: 'none',
+                  padding: '0.7rem 1.4rem',
+                  borderRadius: '99px',
+                  fontSize: '0.95rem',
                   fontWeight: '600',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
                   transition: 'all 0.2s',
-                  boxShadow: '0 4px 8px rgba(139, 92, 246, 0.1)'
+                  boxShadow: '0 4px 12px rgba(107, 142, 123, 0.15)'
                 }}
               >
                 <Download size={16} /> 전체 현황 엑셀 다운로드 (CSV)
