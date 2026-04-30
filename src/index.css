@@ -3,31 +3,31 @@
   --bg-color: #F8FAF9;
   --surface-color: #FFFFFF;
   --surface-hover: #F6F8F9; 
-  --text-primary: #2D3748; 
-  --text-secondary: #718096; 
-  --progress-bg: #E8EDF2;
+  --text-primary: #252D3D; /* Slightly darker */
+  --text-secondary: #64748B; /* Slightly darker */
+  --progress-bg: #E2E8F0; /* Slightly darker empty bar */
   
-  /* Old Testament Variables (Pastel Mint/Sage) */
-  --ot-accent: #67B69C;
-  --ot-accent-hover: #54A389;
-  --ot-accent-light: #E6F3EF;
-  --ot-progress: linear-gradient(135deg, #8AD2B9 0%, #67B69C 100%);
-  --ot-shadow: rgba(103, 182, 156, 0.2);
+  /* Old Testament Variables (Richer Mint/Sage) */
+  --ot-accent: #55A88A;
+  --ot-accent-hover: #458C72;
+  --ot-accent-light: #DDF0E8;
+  --ot-progress: linear-gradient(135deg, #78C5A8 0%, #55A88A 100%);
+  --ot-shadow: rgba(85, 168, 138, 0.25);
 
-  /* New Testament Variables (Pastel Lilac/Periwinkle) */
-  --nt-accent: #8E9BEE;
-  --nt-accent-hover: #7785D4;
-  --nt-accent-light: #EBEDF9;
-  --nt-progress: linear-gradient(135deg, #B5BFF5 0%, #8E9BEE 100%);
-  --nt-shadow: rgba(142, 155, 238, 0.2);
+  /* New Testament Variables (Richer Lilac/Periwinkle) */
+  --nt-accent: #7D8CE0;
+  --nt-accent-hover: #6574C4;
+  --nt-accent-light: #E4E7F7;
+  --nt-progress: linear-gradient(135deg, #A4B1EF 0%, #7D8CE0 100%);
+  --nt-shadow: rgba(125, 140, 224, 0.25);
 
   /* Global Default Accent (Mix of Mint and Lilac) */
-  --accent-color: #79A9C5; 
-  --accent-hover: #6195B4; 
-  --accent-light: #EAF0F4; 
-  --progress-fill: linear-gradient(90deg, #67B69C 0%, #8E9BEE 100%);
-  --theme-shadow: rgba(121, 169, 197, 0.15);
-  --glass-border: rgba(121, 169, 197, 0.15);
+  --accent-color: #6C9BB8; 
+  --accent-hover: #58839D; 
+  --accent-light: #E4EDF3; 
+  --progress-fill: linear-gradient(90deg, #55A88A 0%, #7D8CE0 100%);
+  --theme-shadow: rgba(108, 155, 184, 0.2);
+  --glass-border: rgba(108, 155, 184, 0.2);
 
   --border-radius: 18px; 
   --card-shadow: 0 8px 24px var(--theme-shadow); 
