@@ -45,8 +45,8 @@ const Header = () => {
           padding: '0.9rem 1rem', 
           background: 'var(--surface-color)', 
           borderRadius: '16px', 
-          border: '1px solid rgba(103, 182, 156, 0.15)', 
-          boxShadow: '0 4px 12px rgba(103, 182, 156, 0.1)',
+          border: '1px solid var(--glass-border)', 
+          boxShadow: '0 4px 12px var(--theme-shadow)',
           display: 'block',
           maxWidth: '100%'
         }}>

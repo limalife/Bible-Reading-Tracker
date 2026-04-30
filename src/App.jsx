@@ -334,16 +334,20 @@ function App() {
               read: Object.values(readChapters).reduce((acc, arr) => acc + arr.length, 0),
               percentage: Math.round(((Object.values(readChapters).reduce((acc, arr) => acc + arr.length, 0)) / (oldTestament.reduce((acc,b)=>acc+b.chapters,0) + newTestament.reduce((acc,b)=>acc+b.chapters,0))) * 1000) / 10
             }} />
-            <ProgressBar title="구약" stats={{
-              total: oldTestament.reduce((acc,b)=>acc+b.chapters,0),
-              read: oldTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0),
-              percentage: oldTestament.reduce((acc,b)=>acc+b.chapters,0) === 0 ? 0 : Math.round((oldTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0) / oldTestament.reduce((acc,b)=>acc+b.chapters,0)) * 1000) / 10
-            }} />
-            <ProgressBar title="신약" stats={{
-              total: newTestament.reduce((acc,b)=>acc+b.chapters,0),
-              read: newTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0),
-              percentage: newTestament.reduce((acc,b)=>acc+b.chapters,0) === 0 ? 0 : Math.round((newTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0) / newTestament.reduce((acc,b)=>acc+b.chapters,0)) * 1000) / 10
-            }} />
+            <div className="ot-theme">
+              <ProgressBar title="구약" stats={{
+                total: oldTestament.reduce((acc,b)=>acc+b.chapters,0),
+                read: oldTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0),
+                percentage: oldTestament.reduce((acc,b)=>acc+b.chapters,0) === 0 ? 0 : Math.round((oldTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0) / oldTestament.reduce((acc,b)=>acc+b.chapters,0)) * 1000) / 10
+              }} />
+            </div>
+            <div className="nt-theme">
+              <ProgressBar title="신약" stats={{
+                total: newTestament.reduce((acc,b)=>acc+b.chapters,0),
+                read: newTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0),
+                percentage: newTestament.reduce((acc,b)=>acc+b.chapters,0) === 0 ? 0 : Math.round((newTestament.reduce((acc, book) => acc + (readChapters[book.id] ? readChapters[book.id].length : 0), 0) / newTestament.reduce((acc,b)=>acc+b.chapters,0)) * 1000) / 10
+              }} />
+            </div>
           </div>
         )}
       </div>
@@ -361,25 +365,29 @@ function App() {
 
       {activeUser !== '전체' && (
         <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-          <h2 className="section-title"><BookOpen size={24} /> 구약 (Old Testament)</h2>
-          <BibleGrid 
-            books={oldTestament} 
-            readChapters={readChapters} 
-            toggleChapter={toggleChapter}
-            toggleBookProgress={toggleBookProgress}
-            updateBookBatch={updateBookBatch}
-            autoRouteTarget={routeTarget}
-          />
+          <div className="ot-theme">
+            <h2 className="section-title"><BookOpen size={24} /> 구약 (Old Testament)</h2>
+            <BibleGrid 
+              books={oldTestament} 
+              readChapters={readChapters} 
+              toggleChapter={toggleChapter}
+              toggleBookProgress={toggleBookProgress}
+              updateBookBatch={updateBookBatch}
+              autoRouteTarget={routeTarget}
+            />
+          </div>
 
-          <h2 className="section-title" style={{ marginTop: '3rem' }}><BookOpen size={24} /> 신약 (New Testament)</h2>
-          <BibleGrid 
-            books={newTestament} 
-            readChapters={readChapters} 
-            toggleChapter={toggleChapter}
-            toggleBookProgress={toggleBookProgress}
-            updateBookBatch={updateBookBatch}
-            autoRouteTarget={routeTarget}
-          />
+          <div className="nt-theme" style={{ marginTop: '3rem' }}>
+            <h2 className="section-title"><BookOpen size={24} /> 신약 (New Testament)</h2>
+            <BibleGrid 
+              books={newTestament} 
+              readChapters={readChapters} 
+              toggleChapter={toggleChapter}
+              toggleBookProgress={toggleBookProgress}
+              updateBookBatch={updateBookBatch}
+              autoRouteTarget={routeTarget}
+            />
+          </div>
         </div>
       )}
     </div>

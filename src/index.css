@@ -1,22 +1,58 @@
 :root {
-  /* Brighter, Pastel-infused Light Theme Variables */
-  --bg-color: #F8FAF9; /* Soft fallback, used for subtle backgrounds */
-  --surface-color: #FFFFFF; /* Pure white for cards */
-  --surface-hover: #F2F7F5; /* Soft pastel hover */
-  --text-primary: #2D3748; /* Clear dark gray */
-  --text-secondary: #718096; /* Cooler soft gray */
-  --accent-color: #67B69C; /* Cheerful, soft pastel mint/sage */
-  --accent-hover: #54A389; /* Darker mint */
-  --accent-light: #E6F3EF; /* Very light pastel background */
-  --progress-bg: #E8EDE9;
-  --progress-fill: linear-gradient(135deg, #8AD2B9 0%, #67B69C 100%);
+  /* Base Variables */
+  --bg-color: #F8FAF9;
+  --surface-color: #FFFFFF;
+  --surface-hover: #F6F8F9; 
+  --text-primary: #2D3748; 
+  --text-secondary: #718096; 
+  --progress-bg: #E8EDF2;
   
-  --border-radius: 18px; /* Softer, rounder corners */
-  --card-shadow: 0 8px 24px rgba(103, 182, 156, 0.12); /* Pastel tinted shadow */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(103, 182, 156, 0.1); /* Hint of mint in borders */
+  /* Old Testament Variables (Pastel Mint/Sage) */
+  --ot-accent: #67B69C;
+  --ot-accent-hover: #54A389;
+  --ot-accent-light: #E6F3EF;
+  --ot-progress: linear-gradient(135deg, #8AD2B9 0%, #67B69C 100%);
+  --ot-shadow: rgba(103, 182, 156, 0.2);
 
+  /* New Testament Variables (Pastel Lilac/Periwinkle) */
+  --nt-accent: #8E9BEE;
+  --nt-accent-hover: #7785D4;
+  --nt-accent-light: #EBEDF9;
+  --nt-progress: linear-gradient(135deg, #B5BFF5 0%, #8E9BEE 100%);
+  --nt-shadow: rgba(142, 155, 238, 0.2);
+
+  /* Global Default Accent (Mix of Mint and Lilac) */
+  --accent-color: #79A9C5; 
+  --accent-hover: #6195B4; 
+  --accent-light: #EAF0F4; 
+  --progress-fill: linear-gradient(90deg, #67B69C 0%, #8E9BEE 100%);
+  --theme-shadow: rgba(121, 169, 197, 0.15);
+  --glass-border: rgba(121, 169, 197, 0.15);
+
+  --border-radius: 18px; 
+  --card-shadow: 0 8px 24px var(--theme-shadow); 
+  --glass-bg: rgba(255, 255, 255, 0.85);
   font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.ot-theme {
+  --accent-color: var(--ot-accent);
+  --accent-hover: var(--ot-accent-hover);
+  --accent-light: var(--ot-accent-light);
+  --progress-fill: var(--ot-progress);
+  --theme-shadow: var(--ot-shadow);
+  --glass-border: rgba(103, 182, 156, 0.15);
+  --surface-hover: #F2F7F5;
+}
+
+.nt-theme {
+  --accent-color: var(--nt-accent);
+  --accent-hover: var(--nt-accent-hover);
+  --accent-light: var(--nt-accent-light);
+  --progress-fill: var(--nt-progress);
+  --theme-shadow: var(--nt-shadow);
+  --glass-border: rgba(142, 155, 238, 0.15);
+  --surface-hover: #F4F5FB;
 }
 
 * {
@@ -26,7 +62,7 @@
 }
 
 body {
-  background: linear-gradient(135deg, #FAFCFB 0%, #EFF4F2 100%);
+  background: linear-gradient(135deg, #EDF5F2 0%, #FAFAFC 50%, #F1F3FA 100%);
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -61,7 +97,7 @@ body {
 .header h1 span {
   font-size: 1.3rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-color) 100%);
+  background: linear-gradient(135deg, var(--ot-accent) 0%, var(--nt-accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
@@ -178,8 +214,8 @@ body {
 
 .book-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(107, 142, 123, 0.1);
-  border-color: rgba(107, 142, 123, 0.2);
+  box-shadow: 0 12px 24px var(--theme-shadow);
+  border-color: var(--accent-color);
 }
 
 .book-info {
@@ -276,9 +312,9 @@ body {
 .chapter-btn:hover {
   background: var(--surface-hover);
   color: var(--text-primary);
-  border-color: rgba(0, 0, 0, 0.08);
+  border-color: var(--accent-light);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 8px var(--theme-shadow);
 }
 
 .chapter-btn:active {
@@ -286,10 +322,10 @@ body {
 }
 
 .chapter-btn.read {
-  background: var(--accent-color);
+  background: var(--progress-fill);
   color: #ffffff;
-  border-color: var(--accent-hover);
-  box-shadow: 0 4px 10px rgba(107, 142, 123, 0.25);
+  border: none;
+  box-shadow: 0 4px 10px var(--theme-shadow);
 }
 
 /* Animations */
@@ -316,7 +352,7 @@ body {
   font-weight: 700;
   border-radius: 99px; /* Pill shape */
   border: 1px solid var(--accent-light);
-  box-shadow: 0 8px 20px rgba(107, 142, 123, 0.12);
+  box-shadow: 0 8px 20px var(--theme-shadow);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -332,9 +368,15 @@ body {
 }
 
 .jump-btn:hover {
-  background: var(--accent-light);
+  background: var(--progress-fill);
+  color: #ffffff;
+  border-color: transparent;
   transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(107, 142, 123, 0.18);
+  box-shadow: 0 12px 24px var(--theme-shadow);
+}
+
+.jump-btn:hover svg {
+  color: #ffffff;
 }
 
 .jump-btn:active {

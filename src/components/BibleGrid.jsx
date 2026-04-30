@@ -152,7 +152,7 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
             id={`book-${book.id}`} 
             className="book-card" 
             style={{ 
-              borderColor: isOpen ? 'var(--accent-color)' : (isCompleted ? 'rgba(139, 92, 246, 0.4)' : undefined),
+              borderColor: isOpen ? 'var(--accent-color)' : (isCompleted ? 'var(--accent-light)' : undefined),
               boxShadow: isOpen ? '0 0 0 1px var(--accent-color), 0 8px 24px rgba(0, 0, 0, 0.25)' : undefined,
               cursor: isOpen ? 'default' : 'pointer'
             }}
@@ -172,7 +172,7 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
             >
               <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                 <span className="book-name">{book.name}</span>
-                {isCompleted && <Check size={18} color="#8b5cf6" />}
+                {isCompleted && <Check size={18} color="var(--accent-color)" />}
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                 <span className="book-progress-text">{readList.length} / {book.chapters}</span>
@@ -183,7 +183,7 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
             <div className="book-progress-bar">
               <div 
                 className="book-progress-fill" 
-                style={{ width: `${progressPct}%`, background: isCompleted ? '#8b5cf6' : 'var(--accent-color)' }}
+                style={{ width: `${progressPct}%`, background: isCompleted ? 'var(--progress-fill)' : 'var(--accent-color)' }}
               />
             </div>
 
