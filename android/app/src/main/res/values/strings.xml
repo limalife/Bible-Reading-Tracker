@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">중구8다락방 성경정독</string>
+    <string name="title_activity_main">중구8다락방 성경정독</string>
+    <string name="package_name">com.nsetec.biblereading</string>
+    <string name="custom_url_scheme">com.nsetec.biblereading</string>
+</resources>

@@ -1,0 +1,8 @@
+{
+  "appId": "com.nsetec.biblereading",
+  "appName": "중구8다락방 성경정독",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

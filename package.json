@@ -9,9 +9,18 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "mobile:sync": "npm run build && cap sync",
+    "android:open": "npm run build && cap sync android && cap open android",
+    "android:run": "npm run build && cap sync android && cap run android",
+    "ios:open": "npm run build && cap sync ios && cap open ios",
+    "ios:run": "npm run build && cap sync ios && cap run ios"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.5",
+    "@capacitor/cli": "^7.6.5",
+    "@capacitor/core": "^7.6.5",
+    "@capacitor/ios": "^7.6.5",
     "firebase": "^12.12.0",
     "lucide-react": "^1.8.0",
     "lz-string": "^1.5.0",
