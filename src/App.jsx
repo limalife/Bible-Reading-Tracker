@@ -4,6 +4,7 @@ import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
 import BibleGrid from './components/BibleGrid';
 import UserTabs, { userList } from './components/UserTabs';
+import SplashScreen from './components/SplashScreen';
 import { oldTestament, newTestament } from './data/bibleData';
 
 // 파이어베이스 모듈 임포트
@@ -17,6 +18,7 @@ function App() {
   const [readChapters, setReadChapters] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [routeTarget, setRouteTarget] = useState(null);
+  const [showSplash, setShowSplash] = useState(true);
   
   // 전체 화면용 state
   const [allUsersData, setAllUsersData] = useState([]);
@@ -228,6 +230,9 @@ function App() {
   }, [activeUser]);
 
   const handleJumpToReading = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(15);
+    }
     if (routeTarget && routeTarget.bookId) {
       // 트리거 타임을 업데이트하여 BibleGrid가 닫힌 패널을 강제로 다시 열도록 유도합니다.
       setRouteTarget({ ...routeTarget, triggerTime: Date.now() });
@@ -268,6 +273,8 @@ function App() {
   };
 
   return (
+    <>
+      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
     <div className="app-container">
       <Header />
 
@@ -353,23 +360,23 @@ function App() {
       </div>
 
       {activeUser !== '전체' && !isLoading && (
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <button 
-            onClick={handleJumpToReading} 
-            className="jump-btn"
-          >
-            <BookOpen size={20} /> 읽던 말씀으로 가기
-          </button>
-        </div>
+        <button
+          onClick={handleJumpToReading}
+          className="jump-fab"
+          aria-label="읽던 말씀으로 가기"
+        >
+          <BookOpen size={20} />
+          <span className="jump-fab-label">읽던 말씀으로 가기</span>
+        </button>
       )}
 
       {activeUser !== '전체' && (
         <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
           <div className="ot-theme">
             <h2 className="section-title"><BookOpen size={24} /> 구약 (Old Testament)</h2>
-            <BibleGrid 
-              books={oldTestament} 
-              readChapters={readChapters} 
+            <BibleGrid
+              books={oldTestament}
+              readChapters={readChapters}
               toggleChapter={toggleChapter}
               toggleBookProgress={toggleBookProgress}
               updateBookBatch={updateBookBatch}
@@ -379,9 +386,9 @@ function App() {
 
           <div className="nt-theme" style={{ marginTop: '3rem' }}>
             <h2 className="section-title"><BookOpen size={24} /> 신약 (New Testament)</h2>
-            <BibleGrid 
-              books={newTestament} 
-              readChapters={readChapters} 
+            <BibleGrid
+              books={newTestament}
+              readChapters={readChapters}
               toggleChapter={toggleChapter}
               toggleBookProgress={toggleBookProgress}
               updateBookBatch={updateBookBatch}
@@ -391,6 +398,7 @@ function App() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

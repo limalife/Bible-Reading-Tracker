@@ -1,34 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportHeight="108"
     android:viewportWidth="108">
-    <path
-        android:fillType="evenOdd"
-        android:pathData="M32,64C32,64 38.39,52.99 44.13,50.95C51.37,48.37 70.14,49.57 70.14,49.57L108.26,87.69L108,109.01L75.97,107.97L32,64Z"
-        android:strokeColor="#00000000"
-        android:strokeWidth="1">
+
+    <!-- 따뜻한 빛 후광 (책 위) -->
+    <path android:pathData="M54,42 m -36,0 a 36,36 0 1,0 72,0 a 36,36 0 1,0 -72,0">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:endX="78.5885"
-                android:endY="90.9159"
-                android:startX="48.7653"
-                android:startY="61.0927"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
+                android:centerX="54" android:centerY="42"
+                android:gradientRadius="36"
+                android:type="radial">
+                <item android:color="#D9FFF8DC" android:offset="0.0"/>
+                <item android:color="#73FFE9A8" android:offset="0.35"/>
+                <item android:color="#00FFE9A8" android:offset="1.0"/>
             </gradient>
         </aapt:attr>
     </path>
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M66.94,46.02L66.94,46.02C72.44,50.07 76,56.61 76,64L32,64C32,56.61 35.56,50.11 40.98,46.06L36.18,41.19C35.45,40.45 35.45,39.3 36.18,38.56C36.91,37.81 38.05,37.81 38.78,38.56L44.25,44.05C47.18,42.57 50.48,41.71 54,41.71C57.48,41.71 60.78,42.57 63.68,44.05L69.11,38.56C69.84,37.81 70.98,37.81 71.71,38.56C72.44,39.3 72.44,40.45 71.71,41.19L66.94,46.02ZM62.94,56.92C64.08,56.92 65,56.01 65,54.88C65,53.76 64.08,52.85 62.94,52.85C61.8,52.85 60.88,53.76 60.88,54.88C60.88,56.01 61.8,56.92 62.94,56.92ZM45.06,56.92C46.2,56.92 47.13,56.01 47.13,54.88C47.13,53.76 46.2,52.85 45.06,52.85C43.92,52.85 43,53.76 43,54.88C43,56.01 43.92,56.92 45.06,56.92Z"
-        android:strokeColor="#00000000"
-        android:strokeWidth="1" />
+
+    <!-- 책 아래 그림자 -->
+    <path android:fillColor="#000000" android:fillAlpha="0.15"
+        android:pathData="M54,86 m -28,0 a 28,2 0 1,0 56,0 a 28,2 0 1,0 -56,0"/>
+
+    <!-- 왼쪽 페이지 -->
+    <path android:pathData="M22,54 Q22,52 24,52 L52,52 Q53,52 53,53 L53,84 Q53,85 52,85 L24,85 Q22,85 22,83 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="38" android:startY="52"
+                android:endX="38" android:endY="85"
+                android:type="linear">
+                <item android:color="#FFFFFFFF" android:offset="0.0"/>
+                <item android:color="#FFF1F4FA" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 오른쪽 페이지 -->
+    <path android:pathData="M86,54 Q86,52 84,52 L56,52 Q55,52 55,53 L55,84 Q55,85 56,85 L84,85 Q86,85 86,83 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="70" android:startY="52"
+                android:endX="70" android:endY="85"
+                android:type="linear">
+                <item android:color="#FFFFFFFF" android:offset="0.0"/>
+                <item android:color="#FFF1F4FA" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 왼쪽 페이지 안쪽 음영 (책등 가까운 쪽) -->
+    <path android:pathData="M46,52 h7 v33 h-7 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="46" android:startY="68"
+                android:endX="53" android:endY="68"
+                android:type="linear">
+                <item android:color="#00000000" android:offset="0.0"/>
+                <item android:color="#1F000000" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 오른쪽 페이지 안쪽 음영 -->
+    <path android:pathData="M55,52 h7 v33 h-7 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="55" android:startY="68"
+                android:endX="62" android:endY="68"
+                android:type="linear">
+                <item android:color="#1F000000" android:offset="0.0"/>
+                <item android:color="#00000000" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 가운데 책등 -->
+    <path android:fillColor="#B8C0CC" android:fillAlpha="0.7"
+        android:pathData="M53,52 h2 v33 h-2 z"/>
+
+    <!-- 텍스트 라인 (왼쪽 페이지) -->
+    <path android:fillAlpha="0.35"
+        android:pathData="M26,60 h20 v0.8 h-20 z M26,63.5 h17 v0.8 h-17 z M26,67 h20 v0.8 h-20 z M26,70.5 h15 v0.8 h-15 z M26,74 h20 v0.8 h-20 z M26,77.5 h14 v0.8 h-14 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="26" android:startY="68"
+                android:endX="46" android:endY="68"
+                android:type="linear">
+                <item android:color="#FF55A88A" android:offset="0.0"/>
+                <item android:color="#FF7D8CE0" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 텍스트 라인 (오른쪽 페이지) -->
+    <path android:fillAlpha="0.35"
+        android:pathData="M62,60 h20 v0.8 h-20 z M62,63.5 h17 v0.8 h-17 z M62,67 h20 v0.8 h-20 z M62,70.5 h15 v0.8 h-15 z M62,74 h20 v0.8 h-20 z M62,77.5 h14 v0.8 h-14 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="62" android:startY="68"
+                android:endX="82" android:endY="68"
+                android:type="linear">
+                <item android:color="#FF55A88A" android:offset="0.0"/>
+                <item android:color="#FF7D8CE0" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 책 위 떠있는 그라디언트 십자가 -->
+    <!-- 세로 막대 -->
+    <path android:pathData="M52,30 h4 v22 h-4 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="42" android:startY="30"
+                android:endX="66" android:endY="52"
+                android:type="linear">
+                <item android:color="#FF55A88A" android:offset="0.0"/>
+                <item android:color="#FF6C9BB8" android:offset="0.5"/>
+                <item android:color="#FF7D8CE0" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- 가로 막대 -->
+    <path android:pathData="M46,38 h16 v4 h-16 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="42" android:startY="30"
+                android:endX="66" android:endY="52"
+                android:type="linear">
+                <item android:color="#FF55A88A" android:offset="0.0"/>
+                <item android:color="#FF6C9BB8" android:offset="0.5"/>
+                <item android:color="#FF7D8CE0" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
 </vector>
