@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Download, Users, TrendingUp } from 'lucide-react';
 import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
 import BibleGrid from './components/BibleGrid';
 import UserTabs, { userList } from './components/UserTabs';
 import SplashScreen from './components/SplashScreen';
+import Celebration from './components/Celebration';
 import { oldTestament, newTestament } from './data/bibleData';
 
 // 파이어베이스 모듈 임포트
@@ -19,10 +20,66 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [routeTarget, setRouteTarget] = useState(null);
   const [showSplash, setShowSplash] = useState(true);
+  const [celebration, setCelebration] = useState(null);
+  const prevReadRef = useRef(null);
   
   // 전체 화면용 state
   const [allUsersData, setAllUsersData] = useState([]);
   const [isAllUsersLoading, setIsAllUsersLoading] = useState(false);
+
+  // 사용자 변경 시 비교 기준 리셋 (다른 사람 데이터로 바뀔 때 축하 트리거 방지)
+  useEffect(() => {
+    prevReadRef.current = null;
+  }, [activeUser]);
+
+  // 완독 감지 — readChapters 변화를 prev와 비교하여 새로 완성된 책/구약/신약/전체 판정
+  useEffect(() => {
+    if (activeUser === '전체') return;
+
+    const prev = prevReadRef.current;
+    const next = readChapters;
+
+    // 기준선(prev)이 아직 없으면 트리거하지 않음.
+    // 기준선은 파이어베이스 로드 완료 시점(loadData)에서 설정한다.
+    // (초기 빈 {} 상태를 기준선으로 삼으면 새로고침마다 완독 책이 전부 "신규 완독"으로 잡혀 축하가 뜸)
+    if (prev === null) return;
+
+    const allBooks = [...oldTestament, ...newTestament];
+    const isDone = (data, b) => (data[b.id]?.length || 0) === b.chapters;
+
+    const newlyCompleted = allBooks.filter(b => !isDone(prev, b) && isDone(next, b));
+
+    prevReadRef.current = next;
+
+    if (newlyCompleted.length === 0) return;
+
+    const isOTDone = oldTestament.every(b => isDone(next, b));
+    const isNTDone = newTestament.every(b => isDone(next, b));
+    const wasOTDone = oldTestament.every(b => isDone(prev, b));
+    const wasNTDone = newTestament.every(b => isDone(prev, b));
+
+    let cel;
+    if (isOTDone && isNTDone && !(wasOTDone && wasNTDone)) {
+      cel = { type: 'all' };
+    } else if (isOTDone && !wasOTDone) {
+      cel = { type: 'ot' };
+    } else if (isNTDone && !wasNTDone) {
+      cel = { type: 'nt' };
+    } else {
+      cel = { type: 'book', book: newlyCompleted[newlyCompleted.length - 1] };
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      const pattern = cel.type === 'all'
+        ? [80, 50, 80, 50, 120]
+        : cel.type === 'book'
+        ? 25
+        : [50, 40, 50];
+      navigator.vibrate(pattern);
+    }
+
+    setCelebration({ ...cel, userName: activeUser });
+  }, [readChapters, activeUser]);
 
   // 현재 접속한 탭(사람) 변경 시 파이어베이스에서 해당 데이터를 읽어옵니다.
   useEffect(() => {
@@ -84,7 +141,9 @@ function App() {
       const { chapters: data, lastChecked } = await fetchUserProgress(activeUser);
       if (isMounted) {
         setReadChapters(data);
-        
+        // 로드된 데이터를 완독 감지의 기준선으로 설정 (로드 자체로는 축하가 뜨지 않도록)
+        prevReadRef.current = data;
+
         // 딱 최초 로드 및 탭 변경 시점에 단 한 번만! 스크롤 타겟을 계산합니다.
         // 유저가 클릭해서 체크박스를 바꿀 때는 이 로직이 돌지 않아 화면이 멋대로 움직이지 않습니다.
         const allBooks = [...oldTestament, ...newTestament];
@@ -275,6 +334,7 @@ function App() {
   return (
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      <Celebration data={celebration} onClose={() => setCelebration(null)} />
     <div className="app-container">
       <Header />
 

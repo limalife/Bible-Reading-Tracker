@@ -131,9 +131,7 @@ const SplashScreen = ({ onFinish }) => {
           <div className="splash-tag">중구 8 다락방</div>
           <h1 className="splash-title">성경 정독</h1>
           <div className="splash-divider">
-            <span />
-            <span className="dot" />
-            <span />
+            <span style={{width: '250px'}}/>
           </div>
           <p className="splash-verse">{verse.text}</p>
           <p className="splash-ref">{verse.ref}</p>

@@ -1068,4 +1068,245 @@ body {
   .splash-book { width: 150px; height: 150px; }
 }
 
+/* ============================================================
+   Celebration (책/구약/신약/전체 완독 축하)
+   ============================================================ */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: celebFadeIn 0.3s ease;
+}
+
+/* 큰 모달: 풀스크린 백드롭 */
+.celebration-overlay.big {
+  background: rgba(15, 25, 45, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 작은 토스트: 위에서 슬라이드, 백드롭 없음 */
+.celebration-overlay.small {
+  align-items: flex-start;
+  padding-top: 5rem;
+  pointer-events: none; /* 토스트 뒤 콘텐츠 클릭 가능 */
+}
+.celebration-overlay.small .celebration-card {
+  pointer-events: auto;
+}
+
+@keyframes celebFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 컨페티 */
+.celebration-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  top: -24px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+  will-change: transform, opacity;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(-24px) rotate(0deg);  opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.55; }
+}
+
+/* 카드 */
+.celebration-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(244,248,253,0.96) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 2.2rem 1.8rem 1.8rem;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow:
+    0 30px 60px rgba(15, 25, 45, 0.25),
+    inset 0 1px 0 rgba(255,255,255,1);
+  border: 1px solid rgba(255,255,255,0.7);
+  animation: celebCardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+}
+
+.celebration-overlay.small .celebration-card {
+  padding: 1rem 1.3rem;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-align: left;
+  animation: celebToastSlide 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow:
+    0 16px 40px rgba(15, 25, 45, 0.2),
+    inset 0 1px 0 rgba(255,255,255,1);
+}
+
+.celebration-all {
+  background: linear-gradient(135deg,
+    rgba(255, 250, 232, 0.97) 0%,
+    rgba(244, 248, 253, 0.97) 50%,
+    rgba(240, 245, 255, 0.97) 100%);
+  border: 1.5px solid rgba(232, 184, 72, 0.4);
+  box-shadow:
+    0 30px 60px rgba(15, 25, 45, 0.28),
+    0 0 80px rgba(232, 184, 72, 0.25),
+    inset 0 1px 0 rgba(255,255,255,1);
+}
+
+@keyframes celebCardPop {
+  0%   { opacity: 0; transform: scale(0.6) translateY(30px); }
+  60%  { opacity: 1; transform: scale(1.04) translateY(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes celebToastSlide {
+  from { opacity: 0; transform: translateY(-30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 아이콘 */
+.celebration-icon {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #55A88A 0%, #6C9BB8 50%, #7D8CE0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.1rem;
+  color: #fff;
+  box-shadow:
+    0 12px 28px rgba(108, 155, 184, 0.45),
+    inset 0 2px 6px rgba(255,255,255,0.3);
+  animation: celebIconBounce 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+  flex-shrink: 0;
+}
+
+.celebration-all .celebration-icon {
+  background: linear-gradient(135deg, #F4D87A 0%, #E8B848 50%, #C99A3A 100%);
+  box-shadow:
+    0 12px 28px rgba(201, 154, 58, 0.5),
+    inset 0 2px 6px rgba(255,255,255,0.4);
+}
+
+.celebration-overlay.small .celebration-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0;
+}
+
+@keyframes celebIconBounce {
+  0%   { transform: scale(0) rotate(-180deg); }
+  60%  { transform: scale(1.18) rotate(15deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* 타이틀 */
+.celebration-title {
+  background: linear-gradient(135deg, #55A88A 0%, #6C9BB8 50%, #7D8CE0 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-size: 1.75rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.7rem;
+  animation: gradientShine 3s linear infinite;
+  line-height: 1.25;
+  word-break: keep-all; /* 한국어 단어(완독 등)가 글자 단위로 쪼개지지 않도록 */
+  white-space: nowrap; /* 제목은 한 줄로 고정 (줄바꿈 방지) */
+}
+
+.celebration-all .celebration-title {
+  background: linear-gradient(135deg, #C99A3A 0%, #E8B848 50%, #F4D87A 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.celebration-overlay.small .celebration-title {
+  font-size: 1.1rem;
+  margin: 0 0 0.2rem;
+  line-height: 1.3;
+}
+
+/* 서브타이틀 */
+.celebration-subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0;
+  white-space: pre-line;
+  word-break: keep-all;
+  font-weight: 500;
+}
+
+.celebration-overlay.small .celebration-subtitle {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* 확인 버튼 */
+.celebration-close {
+  margin-top: 1.6rem;
+  padding: 0.95rem 2.4rem;
+  background: linear-gradient(135deg, #55A88A 0%, #6C9BB8 50%, #7D8CE0 100%);
+  background-size: 200% 100%;
+  color: #fff;
+  border: none;
+  border-radius: 99px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    0 12px 28px rgba(108, 155, 184, 0.4),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.2s ease;
+  letter-spacing: -0.01em;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.celebration-all .celebration-close {
+  background: linear-gradient(135deg, #C99A3A 0%, #E8B848 50%, #F4D87A 100%);
+  box-shadow:
+    0 12px 28px rgba(201, 154, 58, 0.45),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.celebration-close:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 16px 32px rgba(108, 155, 184, 0.5),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.celebration-close:active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease;
+}
+
+@media (max-width: 480px) {
+  .celebration-card { padding: 1.8rem 1.4rem 1.4rem; }
+  .celebration-title { font-size: 1.5rem; }
+  .celebration-subtitle { font-size: 0.95rem; }
+  .celebration-icon { width: 72px; height: 72px; }
+}
+
 
