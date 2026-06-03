@@ -17,6 +17,17 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
   const longPressTimerRef = useRef(null);
   const touchPosRef = useRef({ x: 0, y: 0 });
 
+  // 일괄 처리(모두 읽음/취소) 중에는 챕터 버튼 애니메이션을 끈다.
+  // (수십~150개 버튼이 동시에 pop 애니메이션 + transition을 돌리며 버벅이는 현상 방지)
+  const [bulkBookId, setBulkBookId] = useState(null);
+
+  const handleBulkToggle = (bookId, isCompleted, totalChapters) => {
+    setBulkBookId(bookId);
+    toggleBookProgress(bookId, isCompleted, totalChapters);
+    // 변경 렌더가 끝난 뒤 애니메이션을 다시 허용
+    setTimeout(() => setBulkBookId(null), 100);
+  };
+
   useEffect(() => {
     const preventScroll = (e) => {
       if (dragState.active) {
@@ -197,7 +208,7 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
                     className="btn-action"
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleBookProgress(book.id, isCompleted, book.chapters);
+                      handleBulkToggle(book.id, isCompleted, book.chapters);
                     }}
                     style={isCompleted ? { background: 'rgba(255,100,100,0.1)', color: '#ff6b6b', border: '1px solid rgba(255,100,100,0.3)', width: 'auto', flex: 1, whiteSpace: 'nowrap', padding: '0.6rem' } : { width: 'auto', flex: 1, whiteSpace: 'nowrap', padding: '0.6rem' }}
                   >
@@ -211,8 +222,8 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
                     <MousePointerSquareDashed size={14} style={{ marginRight: '6px', color: 'var(--accent-light)' }}/> 꾹 누르고 드래그(다중체크)
                   </div>
                 </div>
-                <div 
-                  className="chapter-grid" 
+                <div
+                  className={`chapter-grid ${bulkBookId === book.id ? 'bulk' : ''}`}
                   style={{ userSelect: 'none' }} // Prevent text selection while dragging
                 >
                   {Array.from({ length: book.chapters }, (_, i) => i + 1).map(chapter => {

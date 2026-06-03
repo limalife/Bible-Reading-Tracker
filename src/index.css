@@ -528,6 +528,13 @@ body {
   100% { transform: scale(1); }
 }
 
+/* 모두 읽음/취소 일괄 처리 시: 수십~150개 버튼의 동시 애니메이션·transition을 꺼서 즉각 반응 */
+.chapter-grid.bulk .chapter-btn,
+.chapter-grid.bulk .chapter-btn.read {
+  animation: none !important;
+  transition: none !important;
+}
+
 /* Animations */
 @keyframes gradientShine {
   to {
