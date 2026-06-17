@@ -42,7 +42,29 @@ const BibleGrid = ({ books, readChapters, toggleChapter, toggleBookProgress, upd
   }, [dragState.active]);
 
   const handleToggleOpen = (id) => {
-    setOpenBookId(openBookId === id ? null : id);
+    const willOpen = openBookId !== id;
+    setOpenBookId(willOpen ? id : null);
+
+    // 새 책을 펼칠 때: 가능한 한 카드 전체가 보이도록 위로 올린다.
+    // 단, 윗부분(책 이름)이 화면 위로 잘리지 않는 선까지만 올린다.
+    if (willOpen) {
+      // 접힘/펼침 렌더가 끝난 뒤 위치를 계산해야 정확하다.
+      const MARGIN = 16;
+      setTimeout(() => {
+        const target = document.getElementById(`book-${id}`);
+        if (!target) return;
+        const rect = target.getBoundingClientRect();
+        const topCut = rect.top < MARGIN;            // 윗부분이 화면 위로 잘림
+        const bottomCut = rect.bottom > window.innerHeight; // 아랫부분이 화면 아래로 잘림
+        // 윗부분이 잘렸거나, 아랫부분이 잘려서 위로 올릴 여지가 있을 때 보정한다.
+        if (topCut || bottomCut) {
+          // 카드 윗부분을 화면 상단 MARGIN 위치까지 끌어올린다.
+          // (윗부분을 기준선 위로는 올리지 않으므로 책 이름은 항상 보인다)
+          const y = rect.top + window.scrollY - MARGIN;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 80);
+    }
   };
 
   useEffect(() => {
