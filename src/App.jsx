@@ -311,11 +311,47 @@ function App() {
 
   const handleDownloadExcel = () => {
     try {
-      const dateStr = new Date().toISOString().split('T')[0];
-      const header = ['이름', '읽은 장 수', '달성률(%)', '남은 진도(장)', '현재 위치'];
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+
+      // 성경정독 계획: 6월 28일 시작, 매일 20장씩
+      const CHAPTERS_PER_DAY = 20;
+      // 오늘 기준 가장 최근의 6월 28일을 시작일로 잡는다 (연도 자동 처리)
+      const startDate = new Date(now.getFullYear(), 5, 28); // 5 = 6월
+      if (startDate > now) {
+        startDate.setFullYear(now.getFullYear() - 1);
+      }
+      // 날짜(자정) 기준 경과일 수 (시작일 당일 = 1일차)
+      const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const daysElapsed = Math.floor((todayMidnight - startMidnight) / 86400000) + 1;
+
+      // 전체 성경 장수 및 읽기 순서
+      const allBooks = [...oldTestament, ...newTestament];
+      const totalBibleChapters = allBooks.reduce((acc, b) => acc + b.chapters, 0);
+
+      // 오늘까지 읽어야 하는 목표 장수 (전체 장수 상한)
+      const targetChapters = Math.min(daysElapsed * CHAPTERS_PER_DAY, totalBibleChapters);
+
+      // 목표 장수에 해당하는 성경 위치(책/장) 계산
+      let targetPos = '-';
+      let acc = 0;
+      for (const book of allBooks) {
+        if (acc + book.chapters >= targetChapters) {
+          targetPos = `${book.name} ${targetChapters - acc}장`;
+          break;
+        }
+        acc += book.chapters;
+      }
+
+      const header = ['이름', '현재 위치', '읽은 장 수', '오늘까지 목표 위치', '진도율(%)', '전체 달성률(%)'];
       const csvContent = [
         header.join(','),
-        ...allUsersData.map(u => `${u.name},${u.readCount},${u.percentage}%,${u.remaining},${u.currentPos}`)
+        ...allUsersData.map(u => {
+          // 진도율: 오늘까지 읽어야 할 목표 대비 실제 읽은 비율 (100% 이상이면 진도보다 앞섬)
+          const pace = targetChapters === 0 ? 0 : Math.round((u.readCount / targetChapters) * 1000) / 10;
+          return `${u.name},${u.currentPos},${u.readCount},${targetPos},${pace}%,${u.percentage}%`;
+        })
       ].join('\n');
 
       const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
