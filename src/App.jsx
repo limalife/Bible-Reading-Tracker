@@ -11,6 +11,9 @@ import { oldTestament, newTestament } from './data/bibleData';
 // 파이어베이스 모듈 임포트
 import { fetchUserProgress, saveUserProgress } from './firebase';
 
+// 서식(셀 병합·정렬·배경·테두리) 지원 엑셀 생성
+import * as XLSX from 'xlsx-js-style';
+
 function App() {
   const [activeUser, setActiveUser] = useState(() => {
     const savedUser = localStorage.getItem('lastActiveUser');
@@ -281,6 +284,42 @@ function App() {
 
   const otStats = calculateProgress(oldTestament);
   const ntStats = calculateProgress(newTestament);
+
+  // 성경정독 계획(6월 28일 시작, 매일 20장)에 따른 "오늘까지 목표" 계산.
+  // 전체 현황 화면과 CSV 다운로드가 함께 사용한다.
+  const planInfo = (() => {
+    const now = new Date();
+    const CHAPTERS_PER_DAY = 20;
+    const startDate = new Date(now.getFullYear(), 5, 28); // 5 = 6월
+    if (startDate > now) {
+      startDate.setFullYear(now.getFullYear() - 1);
+    }
+    const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const daysElapsed = Math.floor((todayMidnight - startMidnight) / 86400000) + 1;
+
+    const allBooks = [...oldTestament, ...newTestament];
+    const totalBibleChapters = allBooks.reduce((acc, b) => acc + b.chapters, 0);
+    const targetChapters = Math.min(daysElapsed * CHAPTERS_PER_DAY, totalBibleChapters);
+
+    let targetPos = '-';
+    let acc = 0;
+    for (const book of allBooks) {
+      if (acc + book.chapters >= targetChapters) {
+        targetPos = `${book.name} ${targetChapters - acc}장`;
+        break;
+      }
+      acc += book.chapters;
+    }
+
+    const todayLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+
+    return { daysElapsed, targetChapters, targetPos, todayLabel };
+  })();
+
+  // 오늘까지 목표 대비 진도율(%) — 100% 이상이면 진도보다 앞섬
+  const getPace = (readCount) =>
+    planInfo.targetChapters === 0 ? 0 : Math.round((readCount / planInfo.targetChapters) * 1000) / 10;
   // 로컬 스토리지 저장 (전체 탭 제외)
   useEffect(() => {
     if (activeUser !== '전체') {
@@ -314,54 +353,80 @@ function App() {
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
 
-      // 성경정독 계획: 6월 28일 시작, 매일 20장씩
-      const CHAPTERS_PER_DAY = 20;
-      // 오늘 기준 가장 최근의 6월 28일을 시작일로 잡는다 (연도 자동 처리)
-      const startDate = new Date(now.getFullYear(), 5, 28); // 5 = 6월
-      if (startDate > now) {
-        startDate.setFullYear(now.getFullYear() - 1);
-      }
-      // 날짜(자정) 기준 경과일 수 (시작일 당일 = 1일차)
-      const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const daysElapsed = Math.floor((todayMidnight - startMidnight) / 86400000) + 1;
+      const { targetPos, targetChapters, todayLabel, daysElapsed } = planInfo;
 
-      // 전체 성경 장수 및 읽기 순서
-      const allBooks = [...oldTestament, ...newTestament];
-      const totalBibleChapters = allBooks.reduce((acc, b) => acc + b.chapters, 0);
+      // 시트 데이터 (제목 2줄 + 헤더 + 사용자별 행)
+      const headerRow = ['이름', '현재 위치', '읽은 장 수', '진도율(%)', '전체 달성률(%)'];
+      const aoa = [
+        [`${todayLabel} (D+${daysElapsed}일)`, '', '', '', ''],
+        [`오늘까지 목표: ${targetPos} (${targetChapters}장)`, '', '', '', ''],
+        headerRow,
+        ...allUsersData.map(u => [
+          u.name,
+          u.currentPos,
+          u.readCount,
+          planInfo.targetChapters === 0 ? 0 : u.readCount / planInfo.targetChapters, // 진도율(비율) → 퍼센트 서식
+          Number(u.percentage) / 100, // 전체 달성률(비율) → 퍼센트 서식
+        ]),
+      ];
 
-      // 오늘까지 읽어야 하는 목표 장수 (전체 장수 상한)
-      const targetChapters = Math.min(daysElapsed * CHAPTERS_PER_DAY, totalBibleChapters);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-      // 목표 장수에 해당하는 성경 위치(책/장) 계산
-      let targetPos = '-';
-      let acc = 0;
-      for (const book of allBooks) {
-        if (acc + book.chapters >= targetChapters) {
-          targetPos = `${book.name} ${targetChapters - acc}장`;
-          break;
+      // 제목 2줄 가로 병합(A~E)
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+      ];
+      ws['!cols'] = [{ wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 11 }, { wch: 14 }];
+
+      const border = {
+        top: { style: 'thin', color: { rgb: 'B0B0B0' } },
+        bottom: { style: 'thin', color: { rgb: 'B0B0B0' } },
+        left: { style: 'thin', color: { rgb: 'B0B0B0' } },
+        right: { style: 'thin', color: { rgb: 'B0B0B0' } },
+      };
+      const titleStyle = {
+        font: { bold: true, sz: 12 },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'DCE6F1' } },
+        border,
+      };
+      const thStyle = {
+        font: { bold: true },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'F2F2F2' } },
+        border,
+      };
+
+      const lastRow = aoa.length - 1;
+      const ref = (r, c) => XLSX.utils.encode_cell({ r, c });
+
+      // 제목 2줄: 병합된 5칸 모두에 서식 지정(테두리가 끝까지 그려지도록)
+      for (let r = 0; r <= 1; r++) {
+        for (let c = 0; c <= 4; c++) {
+          const cell = ws[ref(r, c)] || (ws[ref(r, c)] = { t: 's', v: '' });
+          cell.s = titleStyle;
         }
-        acc += book.chapters;
+      }
+      // 헤더 줄
+      for (let c = 0; c <= 4; c++) {
+        if (ws[ref(2, c)]) ws[ref(2, c)].s = thStyle;
+      }
+      // 데이터 줄: 테두리 + 정렬 + 퍼센트 서식
+      for (let r = 3; r <= lastRow; r++) {
+        for (let c = 0; c <= 4; c++) {
+          const cell = ws[ref(r, c)];
+          if (!cell) continue;
+          const align = c === 0 || c === 1 ? 'left' : 'center';
+          cell.s = { alignment: { horizontal: align, vertical: 'center' }, border };
+          if (c === 3) cell.z = '0.0%';   // 진도율
+          if (c === 4) cell.z = '0.00%';  // 전체 달성률
+        }
       }
 
-      const header = ['이름', '현재 위치', '읽은 장 수', '오늘까지 목표 위치', '진도율(%)', '전체 달성률(%)'];
-      const csvContent = [
-        header.join(','),
-        ...allUsersData.map(u => {
-          // 진도율: 오늘까지 읽어야 할 목표 대비 실제 읽은 비율 (100% 이상이면 진도보다 앞섬)
-          const pace = targetChapters === 0 ? 0 : Math.round((u.readCount / targetChapters) * 1000) / 10;
-          return `${u.name},${u.currentPos},${u.readCount},${targetPos},${pace}%,${u.percentage}%`;
-        })
-      ].join('\n');
-
-      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `다락방_전체_현황_${dateStr}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '전체 현황');
+      XLSX.writeFile(wb, `다락방_전체_현황_${dateStr}.xlsx`);
     } catch(e) {
       alert("다운로드 실패");
     }
@@ -389,19 +454,41 @@ function App() {
         {activeUser === '전체' ? (
           <div>
             <h2 className="section-title">
-              <Users size={24} color="var(--accent-color)" /> 다락방 전체 현황 
+              <Users size={24} color="var(--accent-color)" /> 다락방 전체 현황
             </h2>
-            
+
+            {/* 오늘까지의 정독 목표 (모두 공통) */}
+            <div style={{ marginTop: '1rem', padding: '0.8rem 1rem', background: 'var(--accent-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--accent-hover)', fontWeight: '600' }}>
+                <TrendingUp size={15} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+                {planInfo.todayLabel} 목표 (D+{planInfo.daysElapsed}일)
+              </span>
+              <span style={{ fontSize: '0.9rem', color: 'var(--accent-hover)', fontWeight: '800' }}>
+                {planInfo.targetPos} · {planInfo.targetChapters}장
+              </span>
+            </div>
+
             <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-              {allUsersData.map((user) => (
-                <div key={user.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--bg-color)', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.04)' }}>
-                  <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{user.name}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{user.readCount}장</span>
-                    <span style={{ color: 'var(--accent-color)', fontWeight: '800', fontSize: '1.05rem', minWidth: '3.8rem', textAlign: 'right' }}>{user.percentage}%</span>
+              {allUsersData.map((user) => {
+                const pace = getPace(user.readCount);
+                return (
+                <div key={user.name} style={{ padding: '0.9rem 1rem', background: 'var(--bg-color)', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{user.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{user.readCount}장</span>
+                      <span style={{ color: 'var(--accent-color)', fontWeight: '800', fontSize: '1.05rem', minWidth: '3.8rem', textAlign: 'right' }}>{user.percentage}%</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>📖 {user.currentPos}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: pace >= 100 ? '#3f9d5a' : '#d9822b' }}>
+                      진도율 {pace}%
+                    </span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div style={{ textAlign: 'right', marginTop: '2rem', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '1rem' }}>
@@ -423,7 +510,7 @@ function App() {
                   boxShadow: '0 4px 12px rgba(107, 142, 123, 0.15)'
                 }}
               >
-                <Download size={16} /> 전체 현황 엑셀 다운로드 (CSV)
+                <Download size={16} /> 전체 현황 엑셀 다운로드
               </button>
             </div>
           </div>
