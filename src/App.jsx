@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, Download, Users, TrendingUp } from 'lucide-react';
+import { BookOpen, Users, Share2, Calendar, Flag } from 'lucide-react';
 import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
 import BibleGrid from './components/BibleGrid';
@@ -11,8 +11,10 @@ import { oldTestament, newTestament } from './data/bibleData';
 // 파이어베이스 모듈 임포트
 import { fetchUserProgress, saveUserProgress } from './firebase';
 
-// 서식(셀 병합·정렬·배경·테두리) 지원 엑셀 생성
-import * as XLSX from 'xlsx-js-style';
+// 네이티브(안드로이드/iOS) 파일 저장·공유용 Capacitor 플러그인
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 function App() {
   const [activeUser, setActiveUser] = useState(() => {
@@ -24,6 +26,7 @@ function App() {
   const [routeTarget, setRouteTarget] = useState(null);
   const [showSplash, setShowSplash] = useState(true);
   const [celebration, setCelebration] = useState(null);
+  const [shareImage, setShareImage] = useState(null); // 이미지 미리보기/저장 오버레이용 data URL
   const prevReadRef = useRef(null);
   
   // 전체 화면용 state
@@ -313,8 +316,11 @@ function App() {
     }
 
     const todayLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+    // 파일명용 로컬 날짜 (toISOString은 UTC라 한국 오전에 전날로 나오는 문제 방지)
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const fileDate = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 
-    return { daysElapsed, targetChapters, targetPos, todayLabel };
+    return { daysElapsed, targetChapters, targetPos, todayLabel, fileDate };
   })();
 
   // 오늘까지 목표 대비 진도율(%) — 100% 이상이면 진도보다 앞섬
@@ -348,87 +354,122 @@ function App() {
     }
   };
 
-  const handleDownloadExcel = () => {
+  // 전체 현황 표를 Canvas로 그려 이미지(PNG)로 만든다.
+  const buildStatsCanvas = () => {
+    const { targetPos, targetChapters, todayLabel, daysElapsed } = planInfo;
+
+    const cols = [
+      { key: 'name', label: '이름', w: 84, align: 'left' },
+      { key: 'pos', label: '현재 위치', w: 150, align: 'left' },
+      { key: 'read', label: '읽은 장수', w: 76, align: 'center' },
+      { key: 'pace', label: '진도율', w: 82, align: 'center' },
+      { key: 'total', label: '전체 진도', w: 96, align: 'center' },
+    ];
+    const M = 16;              // 바깥 여백
+    const titleH = 38, headH = 32, rowH = 30;
+    const tableW = cols.reduce((a, c) => a + c.w, 0);
+    const W = tableW + M * 2;
+    const H = M * 2 + titleH * 2 + headH + rowH * allUsersData.length;
+
+    const scale = 2;           // 고해상도(레티나)용
+    const canvas = document.createElement('canvas');
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.textBaseline = 'middle';
+    const font = (px, bold) => `${bold ? 'bold ' : ''}${px}px "맑은 고딕","Malgun Gothic",-apple-system,sans-serif`;
+
+    // 배경
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    const x0 = M;
+    let y = M;
+
+    // 제목 2줄 (연파랑 배경, 가운데 정렬)
+    const titles = [`${todayLabel} (D+${daysElapsed}일)`, `오늘까지 목표: ${targetPos} (${targetChapters}장)`];
+    ctx.textAlign = 'center';
+    titles.forEach((t) => {
+      ctx.fillStyle = '#dce6f1';
+      ctx.fillRect(x0, y, tableW, titleH);
+      ctx.strokeStyle = '#b0b0b0';
+      ctx.strokeRect(x0, y, tableW, titleH);
+      ctx.fillStyle = '#1f3b57';
+      ctx.font = font(16, true);
+      ctx.fillText(t, x0 + tableW / 2, y + titleH / 2 + 1);
+      y += titleH;
+    });
+
+    // 헤더 줄 (회색)
+    let cx = x0;
+    ctx.font = font(13, true);
+    cols.forEach((c) => {
+      ctx.fillStyle = '#f2f2f2';
+      ctx.fillRect(cx, y, c.w, headH);
+      ctx.strokeStyle = '#b0b0b0';
+      ctx.strokeRect(cx, y, c.w, headH);
+      ctx.fillStyle = '#333333';
+      ctx.textAlign = 'center';
+      ctx.fillText(c.label, cx + c.w / 2, y + headH / 2 + 1);
+      cx += c.w;
+    });
+    y += headH;
+
+    // 데이터 줄
+    ctx.font = font(13, false);
+    allUsersData.forEach((u) => {
+      const pace = getPace(u.readCount);
+      const vals = {
+        name: u.name,
+        pos: u.currentPos,
+        read: String(u.readCount),
+        pace: `${pace}%`,
+        total: `${u.percentage}%`,
+      };
+      let dx = x0;
+      cols.forEach((c) => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(dx, y, c.w, rowH);
+        ctx.strokeStyle = '#dcdcdc';
+        ctx.strokeRect(dx, y, c.w, rowH);
+        ctx.fillStyle = c.key === 'pace' ? (pace >= 100 ? '#2e8b57' : '#d9822b') : '#222222';
+        ctx.textAlign = c.align;
+        const tx = c.align === 'left' ? dx + 8 : dx + c.w / 2;
+        ctx.fillText(vals[c.key], tx, y + rowH / 2 + 1);
+        dx += c.w;
+      });
+      y += rowH;
+    });
+
+    return canvas;
+  };
+
+  const handleShareImage = async () => {
     try {
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
+      const canvas = buildStatsCanvas();
+      const fileName = `다락방_전체_현황_${planInfo.fileDate}.png`;
 
-      const { targetPos, targetChapters, todayLabel, daysElapsed } = planInfo;
-
-      // 시트 데이터 (제목 2줄 + 헤더 + 사용자별 행)
-      const headerRow = ['이름', '현재 위치', '읽은 장 수', '진도율(%)', '전체 달성률(%)'];
-      const aoa = [
-        [`${todayLabel} (D+${daysElapsed}일)`, '', '', '', ''],
-        [`오늘까지 목표: ${targetPos} (${targetChapters}장)`, '', '', '', ''],
-        headerRow,
-        ...allUsersData.map(u => [
-          u.name,
-          u.currentPos,
-          u.readCount,
-          planInfo.targetChapters === 0 ? 0 : u.readCount / planInfo.targetChapters, // 진도율(비율) → 퍼센트 서식
-          Number(u.percentage) / 100, // 전체 달성률(비율) → 퍼센트 서식
-        ]),
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-      // 제목 2줄 가로 병합(A~E)
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
-      ];
-      ws['!cols'] = [{ wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 11 }, { wch: 14 }];
-
-      const border = {
-        top: { style: 'thin', color: { rgb: 'B0B0B0' } },
-        bottom: { style: 'thin', color: { rgb: 'B0B0B0' } },
-        left: { style: 'thin', color: { rgb: 'B0B0B0' } },
-        right: { style: 'thin', color: { rgb: 'B0B0B0' } },
-      };
-      const titleStyle = {
-        font: { bold: true, sz: 12 },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        fill: { fgColor: { rgb: 'DCE6F1' } },
-        border,
-      };
-      const thStyle = {
-        font: { bold: true },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        fill: { fgColor: { rgb: 'F2F2F2' } },
-        border,
-      };
-
-      const lastRow = aoa.length - 1;
-      const ref = (r, c) => XLSX.utils.encode_cell({ r, c });
-
-      // 제목 2줄: 병합된 5칸 모두에 서식 지정(테두리가 끝까지 그려지도록)
-      for (let r = 0; r <= 1; r++) {
-        for (let c = 0; c <= 4; c++) {
-          const cell = ws[ref(r, c)] || (ws[ref(r, c)] = { t: 's', v: '' });
-          cell.s = titleStyle;
-        }
+      if (Capacitor.isNativePlatform()) {
+        // 설치한 앱에서만: Filesystem 저장 후 네이티브 공유 시트
+        const base64 = canvas.toDataURL('image/png').split(',')[1];
+        const { uri } = await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache,
+        });
+        await Share.share({
+          title: '다락방 전체 현황',
+          dialogTitle: '전체 현황 이미지 공유',
+          files: [uri],
+        });
+      } else {
+        // 웹(PC 브라우저·카톡 인앱 브라우저 포함): 미리보기를 띄우고 저장 버튼 제공
+        setShareImage(canvas.toDataURL('image/png'));
       }
-      // 헤더 줄
-      for (let c = 0; c <= 4; c++) {
-        if (ws[ref(2, c)]) ws[ref(2, c)].s = thStyle;
-      }
-      // 데이터 줄: 테두리 + 정렬 + 퍼센트 서식
-      for (let r = 3; r <= lastRow; r++) {
-        for (let c = 0; c <= 4; c++) {
-          const cell = ws[ref(r, c)];
-          if (!cell) continue;
-          const align = c === 0 || c === 1 ? 'left' : 'center';
-          cell.s = { alignment: { horizontal: align, vertical: 'center' }, border };
-          if (c === 3) cell.z = '0.0%';   // 진도율
-          if (c === 4) cell.z = '0.00%';  // 전체 달성률
-        }
-      }
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, '전체 현황');
-      XLSX.writeFile(wb, `다락방_전체_현황_${dateStr}.xlsx`);
     } catch(e) {
-      alert("다운로드 실패");
+      if (e && (e.message === 'Share canceled' || e.message === 'Share cancelled')) return;
+      alert("이미지 공유 실패");
     }
   };
 
@@ -436,6 +477,40 @@ function App() {
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <Celebration data={celebration} onClose={() => setCelebration(null)} />
+
+      {/* 이미지 미리보기 + 저장 (PC·카톡 인앱 브라우저 공통) */}
+      {shareImage && (
+        <div
+          onClick={() => setShareImage(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '1.2rem' }}
+        >
+          <p style={{ color: '#fff', fontSize: '0.9rem', textAlign: 'center', margin: 0, wordBreak: 'keep-all' }}>
+            아래 <b>저장</b> 버튼을 눌러 이미지를 저장하세요
+          </p>
+          <img
+            src={shareImage}
+            alt="다락방 전체 현황"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '10px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}
+          />
+          <div style={{ display: 'flex', gap: '0.6rem' }}>
+            <a
+              href={shareImage}
+              download={`다락방_전체_현황_${planInfo.fileDate}.png`}
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: 'var(--accent-color)', color: '#fff', textDecoration: 'none', padding: '0.6rem 1.6rem', borderRadius: '99px', fontSize: '0.9rem', fontWeight: '700' }}
+            >
+              저장
+            </a>
+            <button
+              onClick={() => setShareImage(null)}
+              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', padding: '0.6rem 1.4rem', borderRadius: '99px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     <div className="app-container">
       <Header />
 
@@ -457,34 +532,46 @@ function App() {
               <Users size={24} color="var(--accent-color)" /> 다락방 전체 현황
             </h2>
 
-            {/* 오늘까지의 정독 목표 (모두 공통) */}
-            <div style={{ marginTop: '1rem', padding: '0.8rem 1rem', background: 'var(--accent-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--accent-hover)', fontWeight: '600' }}>
-                <TrendingUp size={15} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
-                {planInfo.todayLabel} 목표 (D+{planInfo.daysElapsed}일)
+            {/* 오늘 날짜 + 오늘까지 목표 위치 (간소화 배너) */}
+            <div style={{ marginTop: '1rem', padding: '0.55rem 0.9rem', background: 'var(--accent-light)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.83rem', fontWeight: '700', color: 'var(--accent-hover)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Calendar size={14} /> {planInfo.todayLabel} <span style={{ opacity: 0.7, fontWeight: 600 }}>(D+{planInfo.daysElapsed})</span>
               </span>
-              <span style={{ fontSize: '0.9rem', color: 'var(--accent-hover)', fontWeight: '800' }}>
-                {planInfo.targetPos} · {planInfo.targetChapters}장
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Flag size={14} /> 목표 {planInfo.targetPos}
               </span>
             </div>
 
-            <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <div style={{ marginTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               {allUsersData.map((user) => {
                 const pace = getPace(user.readCount);
+                const ahead = pace >= 100;
                 return (
                 <div key={user.name} style={{ padding: '0.9rem 1rem', background: 'var(--bg-color)', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.04)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {/* 1줄: 이름 + 전체 달성률 */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '1.05rem' }}>{user.name}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{user.readCount}장</span>
-                      <span style={{ color: 'var(--accent-color)', fontWeight: '800', fontSize: '1.05rem', minWidth: '3.8rem', textAlign: 'right' }}>{user.percentage}%</span>
-                    </div>
+                    <span style={{ color: 'var(--accent-color)', fontWeight: '800', fontSize: '1.15rem' }}>{user.percentage}%</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>📖 {user.currentPos}</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: pace >= 100 ? '#3f9d5a' : '#d9822b' }}>
-                      진도율 {pace}%
+                  {/* 2줄: 현재 위치 + 진도 배지 + 읽은 장수 */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginTop: '0.45rem' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📖 {user.currentPos}
                     </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: '700',
+                        padding: '2px 8px',
+                        borderRadius: '99px',
+                        whiteSpace: 'nowrap',
+                        color: ahead ? '#2e8b57' : '#d9822b',
+                        background: ahead ? 'rgba(46,139,87,0.12)' : 'rgba(217,130,43,0.12)',
+                      }}>
+                        진도 {pace}%
+                      </span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{user.readCount}장</span>
+                    </div>
                   </div>
                 </div>
                 );
@@ -492,11 +579,11 @@ function App() {
             </div>
 
             <div style={{ textAlign: 'right', marginTop: '2rem', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '1rem' }}>
-              <button 
-                onClick={handleDownloadExcel}
+              <button
+                onClick={handleShareImage}
                 style={{
-                  background: 'var(--accent-light)',
-                  color: 'var(--accent-hover)',
+                  background: 'var(--accent-color)',
+                  color: '#fff',
                   border: 'none',
                   padding: '0.7rem 1.4rem',
                   borderRadius: '99px',
@@ -507,10 +594,10 @@ function App() {
                   alignItems: 'center',
                   gap: '8px',
                   transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(107, 142, 123, 0.15)'
+                  boxShadow: '0 4px 12px rgba(107, 142, 123, 0.25)'
                 }}
               >
-                <Download size={16} /> 전체 현황 엑셀 다운로드
+                <Share2 size={16} /> 이미지로 공유
               </button>
             </div>
           </div>

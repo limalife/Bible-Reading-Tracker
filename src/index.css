@@ -773,9 +773,13 @@ body {
   border-radius: 20px;
   border: 1px solid rgba(0, 0, 0, 0.02);
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 
 .user-tabs {
+  flex: 1 1 auto;
+  min-width: 0; /* flex 자식이 줄어들어 스크롤이 생기도록 */
   display: flex;
   overflow-x: auto;
   gap: 0.4rem;
@@ -783,6 +787,31 @@ body {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   cursor: grab;
+}
+
+/* 개인 목록과 '전체' 버튼 사이 구분선 */
+.user-tabs-divider {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 1px;
+  margin: 0.35rem 0.3rem;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* 스크롤 밖 맨 앞에 고정 + 강조되는 '전체' 버튼 */
+.user-tab-all {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent-light);
+  color: var(--accent-hover);
+  font-weight: 700;
+}
+
+.user-tab-all:hover {
+  background: var(--accent-light);
+  color: var(--accent-hover);
 }
 
 .user-tabs::-webkit-scrollbar {
@@ -821,6 +850,14 @@ body {
   color: var(--accent-hover);
   box-shadow: 0 6px 16px var(--theme-shadow), 0 0 0 1px var(--accent-light);
   font-weight: 700;
+  transform: translateY(-1px);
+}
+
+/* '전체' 선택 시: 강조색으로 꽉 채워 확실히 구분 */
+.user-tab-all.active {
+  background: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 6px 16px var(--theme-shadow);
   transform: translateY(-1px);
 }
 
