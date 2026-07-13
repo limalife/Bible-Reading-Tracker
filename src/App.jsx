@@ -10,6 +10,7 @@ import AdminPlan from './components/AdminPlan';
 import { oldTestament, newTestament, totalBibleChapters, formatPosition } from './data/bibleData';
 import { dateKey, targetIndexOn, weekPlanText } from './utils/plan';
 import { buildStatsCanvas } from './utils/statsImage';
+import { CURRENT_BUILD_ID, fetchLatestBuildId, reloadToLatest } from './utils/version';
 
 // 파이어베이스 모듈 임포트
 import { fetchUserProgress, saveUserProgress, fetchPlan } from './firebase';
@@ -37,6 +38,7 @@ function App() {
   const [shareImage, setShareImage] = useState(null); // 이미지 미리보기/저장 오버레이용 data URL
   const [plan, setPlan] = useState({ days: {}, startDate: null }); // 관리자가 등록한 주간 정독 계획
   const [showAdmin, setShowAdmin] = useState(false);
+  const [updateBuildId, setUpdateBuildId] = useState(null); // 새 배포 감지 시 그 buildId
   const prevReadRef = useRef(null);
   
   // 전체 화면용 state
@@ -53,6 +55,42 @@ function App() {
     let isMounted = true;
     fetchPlan().then(p => { if (isMounted) setPlan(p); });
     return () => { isMounted = false; };
+  }, []);
+
+  // 새 배포 감지 — 앱을 켤 때는 조용히 새로고침하고, 이미 쓰고 있는 중이면
+  // 진도 체크를 날리지 않도록 배너만 띄워 사용자가 직접 누르게 한다.
+  useEffect(() => {
+    let cancelled = false;
+
+    const check = async (canReloadSilently) => {
+      const latest = await fetchLatestBuildId();
+      if (cancelled || !latest || latest === CURRENT_BUILD_ID) return;
+
+      // 새로고침 후에도 캐시가 옛 번들을 계속 내주면 무한 리로드가 된다.
+      // buildId 당 자동 새로고침은 한 번만 시도하고, 그 뒤엔 배너로 넘긴다.
+      const alreadyTried = sessionStorage.getItem('autoReloadedFor') === latest;
+      if (canReloadSilently && !alreadyTried) {
+        sessionStorage.setItem('autoReloadedFor', latest);
+        reloadToLatest(latest);
+        return;
+      }
+      setUpdateBuildId(latest);
+    };
+
+    check(true);
+
+    // 앱을 백그라운드에 두는 사이 배포될 수 있어 복귀 시점에도 확인한다.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check(false);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = setInterval(() => check(false), 30 * 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(timer);
+    };
   }, []);
 
   // 완독 감지 — readChapters 변화를 prev와 비교하여 새로 완성된 책/구약/신약/전체 판정
@@ -402,6 +440,47 @@ function App() {
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <Celebration data={celebration} onClose={() => setCelebration(null)} />
+
+      {updateBuildId && (
+        <div
+          style={{
+            position: 'fixed',
+            left: '1rem',
+            right: '1rem',
+            bottom: 'calc(1rem + env(safe-area-inset-bottom))',
+            zIndex: 9000,
+            background: 'var(--accent-color)',
+            color: '#fff',
+            borderRadius: '14px',
+            padding: '0.9rem 1.1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.8rem',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+          }}
+        >
+          <span style={{ fontSize: '0.9rem', fontWeight: 600, wordBreak: 'keep-all' }}>
+            새 버전이 나왔어요
+          </span>
+          <button
+            onClick={() => reloadToLatest(updateBuildId)}
+            style={{
+              background: '#fff',
+              color: 'var(--accent-hover)',
+              border: 'none',
+              padding: '0.5rem 1.1rem',
+              borderRadius: '99px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            새로고침
+          </button>
+        </div>
+      )}
 
       {IS_ADMIN && showAdmin && (
         <AdminPlan
