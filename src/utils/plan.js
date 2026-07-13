@@ -1,6 +1,7 @@
 import { chapterIndex, positionAt, totalBibleChapters } from '../data/bibleData';
 
-export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+// 일요일은 '주일'의 '주'로 표기한다.
+export const WEEKDAYS = ['주', '월', '화', '수', '목', '금', '토'];
 
 const pad2 = (n) => String(n).padStart(2, '0');
 
