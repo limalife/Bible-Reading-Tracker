@@ -1,4 +1,4 @@
-import { chapterIndex, totalBibleChapters } from '../data/bibleData';
+import { chapterIndex, positionAt, totalBibleChapters } from '../data/bibleData';
 
 export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -30,4 +30,42 @@ export const targetIndexOn = (days, key) => {
     key: bestKey,
     index: Math.min(chapterIndex(pos.bookId, pos.chapter), totalBibleChapters),
   };
+};
+
+// 누적 장수 구간(from~to)을 읽기 범위로 표기.
+// 같은 책이면 "창세기 21~34장", 책을 넘어가면 "창세기 35장 ~ 출애굽기 8장".
+const rangeLabel = (fromIndex, toIndex) => {
+  const from = positionAt(fromIndex);
+  const to = positionAt(toIndex);
+  if (!from || !to) return '';
+  if (from.book.id === to.book.id) {
+    return from.chapter === to.chapter
+      ? `${to.book.name} ${to.chapter}장`
+      : `${to.book.name} ${from.chapter}~${to.chapter}장`;
+  }
+  return `${from.book.name} ${from.chapter}장 ~ ${to.book.name} ${to.chapter}장`;
+};
+
+// 카톡 공유에 함께 붙일 "이번 주 진도" 텍스트. 등록된 날이 없으면 빈 문자열.
+export const weekPlanText = (days, today = new Date()) => {
+  const weekStart = sundayOf(today);
+  const weekEnd = addDays(weekStart, 6);
+  let prevIndex = targetIndexOn(days, dateKey(addDays(weekStart, -1)))?.index ?? 0;
+
+  const lines = [];
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(weekStart, i);
+    const pos = days?.[dateKey(d)];
+    if (!pos) continue; // 진도 없는 날은 건너뛴다
+
+    const index = Math.min(chapterIndex(pos.bookId, pos.chapter), totalBibleChapters);
+    const label = index > prevIndex ? rangeLabel(prevIndex + 1, index) : rangeLabel(index, index);
+    lines.push(`${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS[d.getDay()]}) ${label}`);
+    prevIndex = index;
+  }
+
+  if (lines.length === 0) return '';
+
+  const header = `📖 이번 주 진도 (${weekStart.getMonth() + 1}/${weekStart.getDate()}~${weekEnd.getMonth() + 1}/${weekEnd.getDate()})`;
+  return [header, ...lines].join('\n');
 };
