@@ -2,13 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, X, Save, AlertTriangle } from 'lucide-react';
 import { allBooks, chapterIndex, formatPosition } from '../data/bibleData';
 import { savePlanDays } from '../firebase';
-import { WEEKDAYS, dateKey, addDays, mondayOf, targetIndexOn } from '../utils/plan';
+import { WEEKDAYS, dateKey, addDays, sundayOf, targetIndexOn } from '../utils/plan';
 
 // 주간 정독 계획 등록 화면 (?admin=1 일 때만 진입).
 // 날짜별로 "그날까지 읽어야 할 끝 위치(책 + 장)"를 직접 고른다.
 const AdminPlan = ({ plan, onClose, onSaved }) => {
   const [days, setDays] = useState(plan.days || {});
-  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
+  const [weekStart, setWeekStart] = useState(() => sundayOf(new Date())); // 한 주는 일요일 시작
   const [picks, setPicks] = useState({}); // dateKey → { bookId, chapter } | null
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
@@ -137,7 +137,17 @@ const AdminPlan = ({ plan, onClose, onSaved }) => {
                   ...(row.invalid ? S.rowInvalid : null),
                 }}
               >
-                <span style={{ width: '4.4rem', flexShrink: 0, fontSize: '0.85rem', fontWeight: isToday ? 700 : 500 }}>
+                <span
+                  style={{
+                    width: '4.4rem',
+                    flexShrink: 0,
+                    fontSize: '0.85rem',
+                    fontWeight: isToday ? 700 : 500,
+                    color: row.date.getDay() === 0 ? '#c0392b'
+                         : row.date.getDay() === 6 ? '#2c6fbb'
+                         : 'var(--text-primary)',
+                  }}
+                >
                   {row.date.getMonth() + 1}/{row.date.getDate()} ({WEEKDAYS[row.date.getDay()]})
                 </span>
 

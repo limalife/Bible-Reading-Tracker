@@ -13,8 +13,8 @@ export const addDays = (d, n) => {
   return x;
 };
 
-// 그 주의 월요일 (일요일은 직전 월요일로 묶는다)
-export const mondayOf = (d) => addDays(d, d.getDay() === 0 ? -6 : 1 - d.getDay());
+// 그 주의 일요일 (한 주는 일요일 ~ 토요일)
+export const sundayOf = (d) => addDays(d, -d.getDay());
 
 // 계획에서 해당 날짜까지의 누적 목표 장수.
 // 그 날짜에 등록이 없으면 이전 등록일 중 가장 최근 것을 쓴다 → 등록을 걸러도 목표가 0으로 리셋되지 않는다.
