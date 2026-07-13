@@ -39,6 +39,7 @@ function App() {
   const [plan, setPlan] = useState({ days: {}, startDate: null }); // 관리자가 등록한 주간 정독 계획
   const [showAdmin, setShowAdmin] = useState(false);
   const [updateBuildId, setUpdateBuildId] = useState(null); // 새 배포 감지 시 그 buildId
+  const [refreshTick, setRefreshTick] = useState(0); // 앱 복귀 시 서버 데이터를 다시 읽기 위한 트리거
   const prevReadRef = useRef(null);
   
   // 전체 화면용 state
@@ -55,7 +56,7 @@ function App() {
     let isMounted = true;
     fetchPlan().then(p => { if (isMounted) setPlan(p); });
     return () => { isMounted = false; };
-  }, []);
+  }, [refreshTick]);
 
   // 새 배포 감지 — 앱을 켤 때는 조용히 새로고침하고, 이미 쓰고 있는 중이면
   // 진도 체크를 날리지 않도록 배너만 띄워 사용자가 직접 누르게 한다.
@@ -79,12 +80,21 @@ function App() {
 
     check(true);
 
-    // 앱을 백그라운드에 두는 사이 배포될 수 있어 복귀 시점에도 확인한다.
+    // Capacitor 앱은 백그라운드에 있어도 WebView 가 살아있어서, 복귀해도 서버 데이터를
+    // 다시 읽지 않는다. 그 사이 관리자가 주간 계획을 새로 등록했거나 날짜가 바뀌었을 수
+    // 있으므로, 복귀 시점에 새 배포뿐 아니라 진도·계획도 함께 다시 읽는다.
     const onVisible = () => {
-      if (document.visibilityState === 'visible') check(false);
+      if (document.visibilityState !== 'visible') return;
+      check(false);
+      setRefreshTick(t => t + 1);
     };
     document.addEventListener('visibilitychange', onVisible);
-    const timer = setInterval(() => check(false), 30 * 60 * 1000);
+
+    // 앱을 계속 켜둔 채 자정을 넘기는 경우에도 '오늘 목표'가 어제에 머물지 않도록 한다.
+    const timer = setInterval(() => {
+      check(false);
+      setRefreshTick(t => t + 1);
+    }, 30 * 60 * 1000);
 
     return () => {
       cancelled = true;
@@ -256,7 +266,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, [activeUser]);
+  }, [activeUser, refreshTick]);
 
   // 체크박스 클릭 핸들러 (파이어베이스에도 즉시 저장)
   const toggleChapter = async (bookId, chapter) => {
