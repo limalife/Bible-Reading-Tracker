@@ -1,15 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, Users, Share2, Calendar, Flag } from 'lucide-react';
+import { BookOpen, Users, Share2, Calendar, Flag, Settings } from 'lucide-react';
 import Header from './components/Header';
 import ProgressBar from './components/ProgressBar';
 import BibleGrid from './components/BibleGrid';
 import UserTabs, { userList } from './components/UserTabs';
 import SplashScreen from './components/SplashScreen';
 import Celebration from './components/Celebration';
-import { oldTestament, newTestament } from './data/bibleData';
+import AdminPlan from './components/AdminPlan';
+import { oldTestament, newTestament, totalBibleChapters, formatPosition } from './data/bibleData';
+import { dateKey, targetIndexOn } from './utils/plan';
 
 // 파이어베이스 모듈 임포트
-import { fetchUserProgress, saveUserProgress } from './firebase';
+import { fetchUserProgress, saveUserProgress, fetchPlan } from './firebase';
+
+// ?admin=1 로 접속했을 때만 주간 진도 등록 화면에 들어갈 수 있다.
+const IS_ADMIN =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('admin') === '1';
 
 // 네이티브(안드로이드/iOS) 파일 저장·공유용 Capacitor 플러그인
 import { Capacitor } from '@capacitor/core';
@@ -27,6 +34,8 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [celebration, setCelebration] = useState(null);
   const [shareImage, setShareImage] = useState(null); // 이미지 미리보기/저장 오버레이용 data URL
+  const [plan, setPlan] = useState({ days: {}, startDate: null }); // 관리자가 등록한 주간 정독 계획
+  const [showAdmin, setShowAdmin] = useState(false);
   const prevReadRef = useRef(null);
   
   // 전체 화면용 state
@@ -37,6 +46,13 @@ function App() {
   useEffect(() => {
     prevReadRef.current = null;
   }, [activeUser]);
+
+  // 주간 정독 계획 로드 (모든 사람이 같은 계획을 본다)
+  useEffect(() => {
+    let isMounted = true;
+    fetchPlan().then(p => { if (isMounted) setPlan(p); });
+    return () => { isMounted = false; };
+  }, []);
 
   // 완독 감지 — readChapters 변화를 prev와 비교하여 새로 완성된 책/구약/신약/전체 판정
   useEffect(() => {
@@ -288,11 +304,14 @@ function App() {
   const otStats = calculateProgress(oldTestament);
   const ntStats = calculateProgress(newTestament);
 
-  // 성경정독 계획(6월 28일 시작, 매일 20장)에 따른 "오늘까지 목표" 계산.
-  // 전체 현황 화면과 CSV 다운로드가 함께 사용한다.
+  // "오늘까지 목표" 계산. 관리자가 등록한 주간 계획(날짜 → 그날까지의 끝 위치)에서 읽어온다.
+  // 오늘 날짜가 아직 등록 전이면 가장 최근 등록일의 목표를 유지하고,
+  // 계획이 아예 비어 있으면(최초 도입 시점) 기존 방식대로 하루 20장으로 추정한다.
+  // 전체 현황 화면과 공유 이미지가 함께 사용한다.
   const planInfo = (() => {
     const now = new Date();
-    const CHAPTERS_PER_DAY = 20;
+    const todayKey = dateKey(now);
+
     const startDate = new Date(now.getFullYear(), 5, 28); // 5 = 6월
     if (startDate > now) {
       startDate.setFullYear(now.getFullYear() - 1);
@@ -301,26 +320,19 @@ function App() {
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const daysElapsed = Math.floor((todayMidnight - startMidnight) / 86400000) + 1;
 
-    const allBooks = [...oldTestament, ...newTestament];
-    const totalBibleChapters = allBooks.reduce((acc, b) => acc + b.chapters, 0);
-    const targetChapters = Math.min(daysElapsed * CHAPTERS_PER_DAY, totalBibleChapters);
-
-    let targetPos = '-';
-    let acc = 0;
-    for (const book of allBooks) {
-      if (acc + book.chapters >= targetChapters) {
-        targetPos = `${book.name} ${targetChapters - acc}장`;
-        break;
-      }
-      acc += book.chapters;
-    }
+    const hit = targetIndexOn(plan.days, todayKey);
+    const targetChapters = hit
+      ? hit.index
+      : Math.min(daysElapsed * 20, totalBibleChapters);
+    const targetPos = formatPosition(targetChapters);
+    const isPlanned = !!hit;                       // 계획에서 가져온 목표인가
+    const isStale = !!hit && hit.key !== todayKey; // 오늘치가 아직 등록되지 않았나
 
     const todayLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
     // 파일명용 로컬 날짜 (toISOString은 UTC라 한국 오전에 전날로 나오는 문제 방지)
-    const pad2 = (n) => String(n).padStart(2, '0');
-    const fileDate = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+    const fileDate = todayKey;
 
-    return { daysElapsed, targetChapters, targetPos, todayLabel, fileDate };
+    return { daysElapsed, targetChapters, targetPos, todayLabel, fileDate, isPlanned, isStale };
   })();
 
   // 오늘까지 목표 대비 진도율(%) — 100% 이상이면 진도보다 앞섬
@@ -478,6 +490,14 @@ function App() {
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <Celebration data={celebration} onClose={() => setCelebration(null)} />
 
+      {IS_ADMIN && showAdmin && (
+        <AdminPlan
+          plan={plan}
+          onClose={() => setShowAdmin(false)}
+          onSaved={(days) => setPlan(prev => ({ ...prev, days }))}
+        />
+      )}
+
       {/* 이미지 미리보기 + 저장 (PC·카톡 인앱 브라우저 공통) */}
       {shareImage && (
         <div
@@ -539,8 +559,38 @@ function App() {
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                 <Flag size={14} /> 목표 {planInfo.targetPos}
+                {!planInfo.isPlanned && (
+                  <span style={{ fontWeight: 600, opacity: 0.65 }}>(계획 미등록)</span>
+                )}
+                {planInfo.isStale && (
+                  <span style={{ fontWeight: 600, opacity: 0.65 }}>(오늘치 미등록)</span>
+                )}
               </span>
             </div>
+
+            {IS_ADMIN && (
+              <button
+                onClick={() => setShowAdmin(true)}
+                style={{
+                  marginTop: '0.6rem',
+                  width: '100%',
+                  background: 'transparent',
+                  color: 'var(--accent-hover)',
+                  border: '1px dashed var(--accent-color)',
+                  padding: '0.6rem',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Settings size={15} /> 주간 진도 등록
+              </button>
+            )}
 
             <div style={{ marginTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               {allUsersData.map((user) => {

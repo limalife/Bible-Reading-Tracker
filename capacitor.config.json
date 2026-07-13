@@ -3,6 +3,8 @@
   "appName": "중구8다락방 성경정독",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "url": "https://limalife.github.io/Bible-Reading-Tracker/",
+    "allowNavigation": ["limalife.github.io"]
   }
 }

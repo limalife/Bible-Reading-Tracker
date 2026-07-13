@@ -57,4 +57,28 @@ export const saveUserProgress = async (userName, chaptersData, lastChecked) => {
   }
 };
 
+// 4. 정독 계획 읽기 — config/plan 문서 하나에 날짜별 "그날까지의 끝 위치"가 담겨 있다.
+//    { days: { '2026-07-13': { bookId: 'gen', chapter: 20 }, ... }, startDate: '2026-06-28' }
+export const fetchPlan = async () => {
+  try {
+    const docSnap = await getDoc(doc(db, "config", "plan"));
+    if (!docSnap.exists()) return { days: {}, startDate: null };
+    const data = docSnap.data();
+    return { days: data.days || {}, startDate: data.startDate || null };
+  } catch (error) {
+    console.error("Firebase 계획 읽기 에러:", error);
+    return { days: {}, startDate: null };
+  }
+};
+
+// 5. 정독 계획 저장 — 넘겨준 날짜 키만 병합된다(다른 주차는 건드리지 않음).
+export const savePlanDays = async (days) => {
+  const docRef = doc(db, "config", "plan");
+  await setDoc(
+    docRef,
+    { days, lastUpdated: new Date().toISOString() },
+    { merge: true },
+  );
+};
+
 export { db };

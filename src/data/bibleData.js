@@ -69,3 +69,41 @@ export const newTestament = [
   { id: 'jud', name: '유다서', chapters: 1 },
   { id: 'rev', name: '요한계시록', chapters: 22 },
 ];
+
+// 정경 순서로 이어붙인 전체 목록. 정독 계획은 이 순서를 따라 진행된다.
+export const allBooks = [...oldTestament, ...newTestament];
+
+export const totalBibleChapters = allBooks.reduce((acc, b) => acc + b.chapters, 0);
+
+// 위치(창세기 20장) → 누적 장수(20). 출애굽기 8장이면 50 + 8 = 58.
+export const chapterIndex = (bookId, chapter) => {
+  let acc = 0;
+  for (const book of allBooks) {
+    if (book.id === bookId) {
+      return acc + Math.min(Math.max(chapter, 0), book.chapters);
+    }
+    acc += book.chapters;
+  }
+  return 0; // 알 수 없는 bookId
+};
+
+// 누적 장수(58) → 위치({ book: 출애굽기, chapter: 8 }). chapterIndex의 역함수.
+export const positionAt = (index) => {
+  const clamped = Math.min(Math.max(index, 0), totalBibleChapters);
+  if (clamped <= 0) return null;
+
+  let acc = 0;
+  for (const book of allBooks) {
+    if (acc + book.chapters >= clamped) {
+      return { book, chapter: clamped - acc };
+    }
+    acc += book.chapters;
+  }
+  return null;
+};
+
+// "창세기 20장" 형태의 표시용 문자열
+export const formatPosition = (index) => {
+  const pos = positionAt(index);
+  return pos ? `${pos.book.name} ${pos.chapter}장` : '-';
+};
